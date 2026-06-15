@@ -95,7 +95,7 @@
   .cell.especial{background:var(--especial);color:#fff}
   .cell.ferias .chip, .cell.folga .chip, .cell.aniv .chip, .cell.especial .chip{opacity:0.9;background:rgba(255,255,255,.2)!important;color:#fff!important;border:1px solid rgba(255,255,255,.4)}
   /* ---------- Year overview ---------- */
-  .yeargrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .yeargrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
   .minimonth{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
   .minimonth h3{font-size:15px;text-transform:capitalize;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
   .minigrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
@@ -320,9 +320,6 @@
       <button class="navbtn" id="prevY">‹</button>
       <div class="monthlabel">Ano <span class="yr num" id="yLabel2"></span></div>
       <button class="navbtn" id="nextY">›</button>
-    </div>
-    <div style="padding:0 20px;margin-bottom:12px">
-      <input type="text" id="yearSearch" placeholder="Procurar funcionário..." style="width:100%;max-width:300px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px">
     </div>
     <div class="yeargrid" id="yeargrid"></div>
   </section>
@@ -820,24 +817,12 @@ function renderCalendar(){
 }
 
 /* ============ render: ano ============ */
-let yearFilter='';
 function renderYear(){
   document.getElementById('yLabel2').textContent=yearCursor;
   const wrap=document.getElementById('yeargrid');wrap.innerHTML='';
-  
-  // Filtrar funcionários por search
-  const aFunc=funcionarios.filter(f=>f.nome.toLowerCase().includes(yearFilter.toLowerCase()));
-  
   for(let m=0;m<12;m++){
     const box=document.createElement('div');box.className='minimonth';
-    const h3=document.createElement('h3');h3.textContent=MESES[m];
-    h3.style.cursor='pointer';h3.style.transition='color .2s';
-    h3.title='Clique para ver este mês';
-    h3.onmouseover=()=>h3.style.color='var(--gold)';
-    h3.onmouseout=()=>h3.style.color='';
-    h3.onclick=()=>{cursor=new Date(yearCursor,m,1);switchView('calendário');};
-    box.appendChild(h3);
-    
+    box.innerHTML=`<h3>${MESES[m]}</h3>`;
     const g=document.createElement('div');g.className='minigrid';
     DOW.forEach(d=>{const e=document.createElement('div');e.className='minicell empty';e.style.fontSize='8px';e.textContent=d[0];g.appendChild(e);});
     const start=new Date(yearCursor,m,1).getDay();
@@ -846,10 +831,10 @@ function renderYear(){
     for(let day=1;day<=total;day++){
       const dISO=iso(new Date(yearCursor,m,day));
       const e=document.createElement('div');e.className='minicell';e.textContent=day;
-      const ls=lancsNoDia(dISO).filter(x=>aFunc.some(f=>f.id===x.f.id));
+      const ls=lancsNoDia(dISO);
       if(ls.some(x=>x.l.tipo==='ferias'))e.classList.add('ferias');
       else if(ls.some(x=>x.l.tipo==='folga'))e.classList.add('folga');
-      else if(aniversNoDia(dISO).filter(a=>aFunc.some(f=>f.id===a.f.id)).length)e.classList.add('aniv');
+      else if(aniversNoDia(dISO).length)e.classList.add('aniv');
       e.title=dISO;
       e.addEventListener('click',()=>{cursor=new Date(yearCursor,m,1);switchView('calendário');});
       g.appendChild(e);
@@ -1474,6 +1459,7 @@ function openWhats(funcId,tipo,inicio,fim){
 /* ============ render: alertas ============ */
 function renderAlertas(){
   const y=cursor.getFullYear(),m=cursor.getMonth();
+  console.log('🔍 renderAlertas:', MESES[m], y, 'lancamentos:', lancamentos.length, 'funcionarios:', funcionarios.length);
   document.getElementById('mLabelA').textContent=MESES[m];
   document.getElementById('yLabelA').textContent=y;
   const wrap=document.getElementById('alertList');wrap.innerHTML='';
@@ -1483,7 +1469,9 @@ function renderAlertas(){
   // --- Férias ---
   const fer=[];
   lancamentos.filter(l=>l.tipo==='ferias').forEach(l=>{
-    const f=byId(l.funcId);if(!f)return;
+    const f=byId(l.funcId);
+    console.log('  férias:', l.inicio, 'funcId:', l.funcId, 'nome:', f?.nome);
+    if(!f)return;
     const startIn=inMonth(l.inicio), endIn=inMonth(l.fim);
     const spans=parse(l.inicio)<new Date(y,m,1)&&parse(l.fim)>new Date(y,m+1,0);
     if(startIn||endIn||spans){
@@ -1491,6 +1479,7 @@ function renderAlertas(){
       fer.push({f,l,rotulo,anchor:startIn?'start':'other'});
     }
   });
+  console.log('  férias encontradas:', fer.length);
   if(fer.length)groups.push({titulo:'Férias',icon:'🌿',cls:'ferias',items:fer.map(x=>({
     nome:x.f.nome,sub:`${x.rotulo} · ${fmtBR(x.l.inicio)} a ${fmtBR(x.l.fim)} (${daysBetween(x.l.inicio,x.l.fim)} dias)`,
     send:{funcId:x.f.id,tipo:'ferias',inicio:x.l.inicio,fim:x.l.fim},phone:x.f.telefone
@@ -1605,7 +1594,6 @@ document.getElementById('todayBtn').onclick=()=>{cursor=new Date(TODAY.getFullYe
 document.getElementById('calSearch').oninput=(e)=>{calendarFilter=e.target.value;renderCalendar();};
 document.getElementById('prevY').onclick=()=>{yearCursor--;renderYear();};
 document.getElementById('nextY').onclick=()=>{yearCursor++;renderYear();};
-document.getElementById('yearSearch').oninput=(e)=>{yearFilter=e.target.value;renderYear();};
 document.getElementById('addPerson').onclick=()=>openPerson(null);
 document.getElementById('copyRep').onclick=()=>{navigator.clipboard.writeText(reportText()).then(()=>alert('Relatório copiado.'));};
 document.getElementById('printRep').onclick=()=>openPrint(buildReportDoc());
