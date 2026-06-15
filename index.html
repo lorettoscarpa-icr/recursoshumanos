@@ -95,7 +95,7 @@
   .cell.especial{background:var(--especial);color:#fff}
   .cell.ferias .chip, .cell.folga .chip, .cell.aniv .chip, .cell.especial .chip{opacity:0.9;background:rgba(255,255,255,.2)!important;color:#fff!important;border:1px solid rgba(255,255,255,.4)}
   /* ---------- Year overview ---------- */
-  .yeargrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  .yeargrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
   .minimonth{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
   .minimonth h3{font-size:15px;text-transform:capitalize;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
   .minigrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
@@ -106,7 +106,11 @@
   .minicell.aniv{background:var(--aniv);color:#fff}
   .minicell.empty{background:transparent;cursor:default}
   /* ---------- People ---------- */
-  .people{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:20px}
+  .people{display:flex;flex-direction:column;gap:20px}
+  .people-section{display:grid;gap:16px}
+  .people-section.vendedoras{grid-template-columns:repeat(4,1fr)}
+  .people-section.operacao{grid-template-columns:repeat(3,1fr)}
+  .people-section.desligados{grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
   .pcard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:0;overflow:hidden;box-shadow:var(--shadow)}
   .pcard .top{padding:18px 20px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center}
   .avatar{width:44px;height:44px;border-radius:50%;background:var(--olive);color:var(--gold);
@@ -868,35 +872,33 @@ function renderPeople(){
   wrap.appendChild(summary);
   
   // Separar e ordenar por tempo de casa (mais antigo primeiro)
-  const vendedoras=ativos.filter(f=>['Ialey','Jhennifer','Michelly','Natália'].includes(f.nome)).sort((a,b)=>parse(b.admissao)-parse(a.admissao));
-  const operacao=ativos.filter(f=>['Yuri','Edson','Gustavo'].includes(f.nome)).sort((a,b)=>parse(b.admissao)-parse(a.admissao));
-  const desligados=funcionarios.filter(f=>!isAtivo(f)).sort((a,b)=>parse(b.admissao)-parse(a.admissao));
+  const vendedoras=ativos.filter(f=>['Ialey','Jhennifer','Michelly','Natália'].includes(f.nome)).sort((a,b)=>parse(a.admissao)-parse(b.admissao));
+  const operacao=ativos.filter(f=>['Yuri','Edson','Gustavo'].includes(f.nome)).sort((a,b)=>parse(a.admissao)-parse(b.admissao));
+  const desligados=funcionarios.filter(f=>!isAtivo(f)).sort((a,b)=>parse(a.admissao)-parse(b.admissao));
   
-  const sections=[{titulo:'Vendedoras',items:vendedoras},{titulo:'Operação',items:operacao}];
+  const sections=[{titulo:'Vendedoras',items:vendedoras,tipo:'vendedoras'},{titulo:'Operação',items:operacao,tipo:'operacao'}];
   
   sections.forEach(sec=>{
     if(sec.items.length){
-      const secDiv=document.createElement('div');
       const secTitle=document.createElement('h3');
-      secTitle.style.cssText='font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 12px;font-family:Barlow,sans-serif';
+      secTitle.style.cssText='font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:24px 0 12px;font-family:Barlow,sans-serif';
       secTitle.innerHTML=`${sec.titulo} <span style="color:var(--ok)">${sec.items.length}</span>`;
-      secDiv.appendChild(secTitle);
-      wrap.appendChild(secDiv);
-      renderPeopleList(sec.items,wrap);
+      wrap.appendChild(secTitle);
+      renderPeopleList(sec.items,wrap,sec.tipo);
     }
   });
   
   if(desligados.length){
-    const secDiv=document.createElement('div');
     const secTitle=document.createElement('h3');
-    secTitle.style.cssText='font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 12px;font-family:Barlow,sans-serif';
+    secTitle.style.cssText='font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:24px 0 12px;font-family:Barlow,sans-serif';
     secTitle.innerHTML=`Desligados <span style="color:var(--muted)">${desligados.length}</span>`;
-    secDiv.appendChild(secTitle);
-    wrap.appendChild(secDiv);
-    renderPeopleList(desligados,wrap);
+    wrap.appendChild(secTitle);
+    renderPeopleList(desligados,wrap,'desligados');
   }
 }
-function renderPeopleList(list,wrap){
+function renderPeopleList(list,wrap,tipo){
+  const section=document.createElement('div');
+  section.className='people-section '+(tipo||'');
   list.forEach(f=>{
     const fer=feriasInfo(f), ban=bancoInfo(f), pr=prioridade(f), ativo=isAtivo(f);
     const card=document.createElement('div');card.className='pcard'+(ativo?'':' inativo');
@@ -936,12 +938,13 @@ function renderPeopleList(list,wrap){
         <button data-hist="${f.id}">Histórico</button>
         <button data-lanc="${f.id}">Lançar</button>
       </div>`;
-    wrap.appendChild(card);
+    section.appendChild(card);
   });
+  wrap.appendChild(section);
   
-  wrap.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openPerson(b.dataset.edit)));
-  wrap.querySelectorAll('[data-hist]').forEach(b=>b.addEventListener('click',()=>openHistorico(b.dataset.hist)));
-  wrap.querySelectorAll('[data-lanc]').forEach(b=>b.addEventListener('click',()=>openLancamento(null,b.dataset.lanc)));
+  section.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openPerson(b.dataset.edit)));
+  section.querySelectorAll('[data-hist]').forEach(b=>b.addEventListener('click',()=>openHistorico(b.dataset.hist)));
+  section.querySelectorAll('[data-lanc]').forEach(b=>b.addEventListener('click',()=>openLancamento(null,b.dataset.lanc)));
 }
 
 function diasDesdeAdmissao(f){if(!f.admissao)return null;return Math.floor((TODAY-parse(f.admissao))/86400000);}
@@ -1053,61 +1056,76 @@ function renderBanco(){
     const saldo=horasExtras-faltas;
     saldoPorFunc[f.id]={atrasos,horasExtras,faltas,saldo,banco};
   });
-
-  const html=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h3 style="font-size:16px;margin:0;color:var(--ink);font-family:'Playfair Display',serif">Banco de Horas</h3>
-      <button class="primary" id="btnLancarBanco" style="padding:8px 14px;font-size:13px">+ Lançar</button>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;max-width:1000px">
-      ${funcionarios.filter(isAtivo).map(f=>{
+  
+  // Header com botão
+  const header=document.createElement('div');
+  header.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px';
+  header.innerHTML=`
+    <h3 style="font-size:16px;margin:0;color:var(--ink);font-family:'Playfair Display',serif">Banco de Horas</h3>
+    <button class="primary" id="btnLancarBanco" style="padding:8px 14px;font-size:13px">+ Lançar</button>
+  `;
+  wrap.appendChild(header);
+  
+  // Seções: Vendedoras e Operação
+  const vendedoras=funcionarios.filter(isAtivo).filter(f=>['Ialey','Jhennifer','Michelly','Natália'].includes(f.nome)).sort((a,b)=>parse(a.admissao)-parse(b.admissao));
+  const operacao=funcionarios.filter(isAtivo).filter(f=>['Yuri','Edson','Gustavo'].includes(f.nome)).sort((a,b)=>parse(a.admissao)-parse(b.admissao));
+  
+  const sections=[{titulo:'Vendedoras',items:vendedoras,tipo:'vendedoras'},{titulo:'Operação',items:operacao,tipo:'operacao'}];
+  
+  sections.forEach(sec=>{
+    if(sec.items.length){
+      const secTitle=document.createElement('h3');
+      secTitle.style.cssText='font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:24px 0 12px;font-family:Barlow,sans-serif';
+      secTitle.innerHTML=`${sec.titulo} <span style="color:var(--ok)">${sec.items.length}</span>`;
+      wrap.appendChild(secTitle);
+      
+      const section=document.createElement('div');
+      section.className='people-section '+sec.tipo;
+      
+      sec.items.forEach(f=>{
         const s=saldoPorFunc[f.id];
         const saldoStr=(s.saldo>=0?'+':'')+(s.saldo>0?s.saldo+'h':'0h');
         const saldoColor=s.saldo>0?'var(--ok)':s.saldo<0?'var(--bad)':'var(--muted)';
-        return `
-        <div style="background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)">
-            <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:var(--ink)">${f.nome}</div>
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">${f.funcao}</div>
+        
+        const card=document.createElement('div');
+        card.className='pcard';
+        card.innerHTML=`
+          <div class="top">
+            <div class="avatar">${avatarHTML(f)}</div>
+            <div class="who"><h3>${f.nome}</h3><div class="role">${f.funcao}</div></div>
           </div>
-          <div style="display:flex;flex-direction:column;gap:10px;font-size:13.5px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="color:var(--muted)">Atrasos no mês</span>
-              <span class="num" style="font-weight:600;color:var(--ink);font-size:14px">${s.atrasos}</span>
+          <div class="body">
+            ${row('Atrasos no mês',`${s.atrasos}`)}
+            ${row('Horas extras',`${s.horasExtras}h`)}
+            ${row('Faltas',`${s.faltas}h`)}
+            ${row('Saldo',`<span style="color:${saldoColor};font-weight:700">${saldoStr}</span>`,true)}
+            ${s.banco.length>0?`
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)">
+              <strong>Lançamentos:</strong>
+              <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">
+                ${s.banco.map(b=>`
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span>${b.origem}</span>
+                    <span class="num" style="font-weight:600;color:${b.valor>0?'var(--ok)':'var(--bad)'}">${b.valor>0?'+':''} ${b.valor}h</span>
+                    <button class="ghost" style="padding:2px 6px;font-size:10px;border:none;color:var(--bad)" onclick="deleteBanco('${b.id}')">✕</button>
+                  </div>
+                `).join('')}
+              </div>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="color:var(--muted)">Horas extras</span>
-              <span class="num" style="font-weight:600;color:var(--ink);font-size:14px">${s.horasExtras}h</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="color:var(--muted)">Faltas</span>
-              <span class="num" style="font-weight:600;color:var(--ink);font-size:14px">${s.faltas}h</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;border-top:1px solid var(--line);margin-top:8px">
-              <span style="color:var(--ink);font-weight:600">Saldo banco</span>
-              <span class="num" style="font-weight:700;color:${saldoColor};font-size:15px">${saldoStr}</span>
-            </div>
+            `:''}
           </div>
-          ${s.banco.length>0?`
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)">
-            <strong>Lançamentos:</strong>
-            <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">
-              ${s.banco.map(b=>`
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span>${b.origem}</span>
-                  <span class="num" style="font-weight:600;color:${b.valor>0?'var(--ok)':'var(--bad)'}">${b.valor>0?'+':''} ${b.valor}h</span>
-                  <button class="ghost" style="padding:2px 6px;font-size:10px;border:none;color:var(--bad)" onclick="deleteBanco('${b.id}')">✕</button>
-                </div>
-              `).join('')}
-            </div>
+          <div class="actions">
+            <button data-lanc-banco="${f.id}">Lançar</button>
           </div>
-          `:``}
-        </div>
-      `}).join('')}
-    </div>
-  `;
-  wrap.innerHTML=html;
+        `;
+        section.appendChild(card);
+      });
+      wrap.appendChild(section);
+    }
+  });
+  
   document.getElementById('btnLancarBanco').onclick=openBancoModal;
+  wrap.querySelectorAll('[data-lanc-banco]').forEach(b=>b.addEventListener('click',()=>openBancoModal(b.dataset.lancBanco)));
 }
 function renderDocs(){
   const wrap=document.getElementById('docsContent');wrap.innerHTML='';
@@ -1145,19 +1163,22 @@ function renderDocs(){
             const dias=Math.ceil((venc-TODAY)/86400000);
             const colorBorder=dias<0?'var(--bad)':dias<30?'var(--warn)':'var(--gold)';
             return `
-            <div style="background:var(--paper);border:1px solid var(--line);border-left:5px solid ${colorBorder};border-radius:10px;padding:14px 16px;display:flex;gap:16px;align-items:center;justify-content:space-between;box-shadow:var(--shadow)">
-              <div style="flex:1">
-                <div style="font-size:15px;font-weight:600;color:var(--ink);font-family:'Playfair Display',serif">${f?f.nome:'N/A'}</div>
-                <div style="font-size:13px;color:var(--muted);margin-top:2px">${d.tipo}</div>
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <div style="width:48px;height:48px;flex-shrink:0">${f?avatarHTML(f):'<div style="background:var(--line);border-radius:6px;width:100%;height:100%"></div>'}</div>
+              <div style="background:var(--paper);border:1px solid var(--line);border-left:5px solid ${colorBorder};border-radius:10px;padding:14px 16px;display:flex;gap:16px;align-items:center;justify-content:space-between;box-shadow:var(--shadow);flex:1">
+                <div style="flex:1">
+                  <div style="font-size:15px;font-weight:600;color:var(--ink);font-family:'Playfair Display',serif">${f?f.nome:'N/A'}</div>
+                  <div style="font-size:13px;color:var(--muted);margin-top:2px">${d.tipo}</div>
+                </div>
+                <div style="text-align:right;min-width:120px;padding:0 12px;border-left:1px solid var(--line)">
+                  <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">vence</div>
+                  <div style="font-size:13px;color:var(--ink);font-weight:600;font-family:'DM Mono',monospace;margin-top:2px">${d.vencimento}</div>
+                </div>
+                <div style="background:var(--olive);padding:10px 14px;border-radius:8px;text-align:center;color:var(--gold);font-weight:700;font-size:11px;min-width:90px;line-height:1.3;white-space:nowrap">
+                  ${dias<0?`VENCIDO<br>${Math.abs(dias)}d`:dias===0?`VENCE<br>HOJE`:`FALTAM<br>${dias}d`}
+                </div>
+                <button class="ghost" style="padding:6px 10px;font-size:12px;border:none;color:var(--muted);margin-left:8px" onclick="deleteDoc('${d.id}')">✕</button>
               </div>
-              <div style="text-align:right;min-width:120px;padding:0 12px;border-left:1px solid var(--line)">
-                <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">vence</div>
-                <div style="font-size:13px;color:var(--ink);font-weight:600;font-family:'DM Mono',monospace;margin-top:2px">${d.vencimento}</div>
-              </div>
-              <div style="background:var(--olive);padding:10px 14px;border-radius:8px;text-align:center;color:var(--gold);font-weight:700;font-size:11px;min-width:90px;line-height:1.3;white-space:nowrap">
-                ${dias<0?`VENCIDO<br>${Math.abs(dias)}d`:dias===0?`VENCE<br>HOJE`:`FALTAM<br>${dias}d`}
-              </div>
-              <button class="ghost" style="padding:6px 10px;font-size:12px;border:none;color:var(--muted);margin-left:8px" onclick="deleteDoc('${d.id}')">✕</button>
             </div>
           `}).join('')}
           ${documentosRH.length===0?`
@@ -1609,7 +1630,7 @@ document.getElementById('saveTpl').onclick=()=>{
 document.getElementById('nextM').onclick=()=>{cursor=addMonths(cursor,1);refreshAll();};
 
 /* ===== BANCO DE HORAS ===== */
-function openBancoModal(){
+function openBancoModal(funcId){
   const funcList=funcionarios.filter(isAtivo);
   const html=`
     <div class="modal-overlay">
@@ -1619,7 +1640,7 @@ function openBancoModal(){
           <div>
             <label style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">Funcionária</label>
             <select id="bFunc" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px">
-              ${funcList.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('')}
+              ${funcList.map(f=>`<option value="${f.id}" ${f.id===funcId?'selected':''}>${f.nome}</option>`).join('')}
             </select>
           </div>
           <div>
