@@ -77,6 +77,7 @@
   .cell.sun{background:#faf8f1}
   .cell.today{border-color:var(--olive);box-shadow:0 0 0 2px rgba(53,61,40,.18)}
   .daynum{font-family:'DM Mono',monospace;font-size:13px;color:var(--ink);font-weight:500}
+  .cell.ferias .daynum, .cell.folga .daynum, .cell.aniv .daynum, .cell.especial .daynum{color:#fff}
   .cell.out .daynum{color:#b5b1a3}
   .star{position:absolute;top:6px;right:7px;font-size:11px;color:var(--especial)}
   .chips{margin-top:8px;display:flex;flex-direction:column;gap:5px}
@@ -88,6 +89,11 @@
   .chip.folga{background:var(--folga-bg);color:var(--folga)}
   .chip.aniv{background:var(--aniv-bg);color:var(--aniv)}
   .chip.esp{background:#eef0e3;color:var(--especial);font-weight:700}
+  .cell.ferias{background:var(--ferias);color:#fff}
+  .cell.folga{background:var(--folga);color:#fff}
+  .cell.aniv{background:var(--aniv);color:#fff}
+  .cell.especial{background:var(--especial);color:#fff}
+  .cell.ferias .chip, .cell.folga .chip, .cell.aniv .chip, .cell.especial .chip{opacity:0.9;background:rgba(255,255,255,.2)!important;color:#fff!important;border:1px solid rgba(255,255,255,.4)}
   /* ---------- Year overview ---------- */
   .yeargrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
   .minimonth{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
@@ -294,11 +300,12 @@
       <button class="ghost" id="todayBtn">Hoje</button>
       <button class="primary" id="addBtn">+ Lançar férias / folga</button>
     </div>
+    <div id="ausenciasPanel" style="margin-bottom:20px;padding:16px;background:var(--cream);border-radius:12px;border-left:4px solid var(--olive)"></div>
     <div class="legend">
       <span><i class="dot" style="background:var(--ferias)"></i> Férias</span>
       <span><i class="dot" style="background:var(--folga)"></i> Folga</span>
       <span><i class="dot" style="background:var(--aniv)"></i> Aniversário</span>
-      <span><i class="dot" style="background:var(--especial)"></i> Sábado que gera +1 folga para as vendedoras (Namorados · Pais · Natal · Ano Novo)</span>
+      <span><i class="dot" style="background:var(--especial)"></i> Sábado Especial</span>
     </div>
     <div class="grid" id="cal"></div>
   </section>
@@ -698,12 +705,66 @@ function aniversNoDia(isoStr){
   return out;
 }
 
+/* ============ render: ausências do mês ============ */
+function renderAusenciasPanel(y,m){
+  const wrap=document.getElementById('ausenciasPanel');
+  const inicio=new Date(y,m,1);
+  const fim=new Date(y,m+1,0);
+  
+  const ausencias=[];
+  lancamentos.filter(l=>['ferias','folga'].includes(l.tipo)).forEach(l=>{
+    const lInicio=parse(l.inicio), lFim=parse(l.fim);
+    if((lInicio<=fim && lFim>=inicio)){
+      const f=byId(l.funcId);
+      if(f) ausencias.push({f,l,tipo:l.tipo});
+    }
+  });
+  
+  if(!ausencias.length){
+    wrap.innerHTML='<div style="font-size:13px;color:var(--muted)">Nenhuma ausência prevista para este mês.</div>';
+    return;
+  }
+  
+  const grouped={ferias:[],folga:[]};
+  ausencias.forEach(a=>grouped[a.tipo].push(a));
+  
+  let html=`<h3 style="font-size:14px;font-weight:600;margin-bottom:10px;color:var(--ink)">📅 Ausências do mês</h3>`;
+  
+  if(grouped.ferias.length){
+    html+=`<div style="margin-bottom:10px">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">🌿 Férias</div>
+      ${grouped.ferias.map(a=>`
+        <div style="font-size:13px;margin-bottom:4px;color:var(--ink)">
+          <strong>${a.f.nome}</strong> — ${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} <span style="color:var(--muted)">(${daysBetween(a.l.inicio,a.l.fim)} dias)</span>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+  
+  if(grouped.folga.length){
+    html+=`<div>
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">💜 Folgas</div>
+      ${grouped.folga.map(a=>`
+        <div style="font-size:13px;margin-bottom:4px;color:var(--ink)">
+          <strong>${a.f.nome}</strong> — ${fmtBR(a.l.inicio)}
+        </div>
+      `).join('')}
+    </div>`;
+  }
+  
+  wrap.innerHTML=html;
+}
+
 /* ============ render: calendário ============ */
 let calendarFilter='';
 function renderCalendar(){
   const y=cursor.getFullYear(),m=cursor.getMonth();
   document.getElementById('mLabel').textContent=MESES[m];
   document.getElementById('yLabel').textContent=y;
+  
+  // Renderizar painel de ausências
+  renderAusenciasPanel(y,m);
+  
   const cal=document.getElementById('cal');cal.innerHTML='';
   DOW.forEach(d=>{const e=document.createElement('div');e.className='dow';e.textContent=d;cal.appendChild(e);});
   const first=new Date(y,m,1);const start=first.getDay();
@@ -717,6 +778,17 @@ function renderCalendar(){
     const c=document.createElement('div');c.className='cell';
     if(dObj.getDay()===0)c.classList.add('sun');
     if(dISO===HOJE_ISO)c.classList.add('today');
+    
+    // Adicionar cor baseado no evento prioritário
+    if(isSabadoFolga(dISO)){
+      c.classList.add('especial');
+    } else {
+      const lancs=lancsNoDia(dISO);
+      if(lancs.some(x=>x.l.tipo==='ferias'))c.classList.add('ferias');
+      else if(lancs.some(x=>x.l.tipo==='folga'))c.classList.add('folga');
+      else if(aniversNoDia(dISO).length)c.classList.add('aniv');
+    }
+    
     let html=`<span class="daynum">${day}</span>`;
     if(isSabadoFolga(dISO))html+=`<span class="star" title="Sábado que gera folga">★</span>`;
     const chips=[];
@@ -971,9 +1043,9 @@ function populateRepPessoa(){
 function renderBanco(){
   const wrap=document.getElementById('bancoContent');wrap.innerHTML='';
   
-  // Calcular saldo por funcionário
+  // Calcular saldo por funcionário - TODOS os ativos
   const saldoPorFunc={};
-  funcionarios.filter(f=>isAtivo(f)&&['Ialey','Jhennifer','Michelly','Natália'].includes(f.nome)).forEach(f=>{
+  funcionarios.filter(isAtivo).forEach(f=>{
     const banco=bancoManual.filter(b=>b.funcId===f.id);
     const atrasos=banco.filter(b=>b.origem&&b.origem.includes('atraso')).length;
     const horasExtras=banco.filter(b=>b.valor>0).reduce((s,b)=>s+b.valor,0);
@@ -988,7 +1060,7 @@ function renderBanco(){
       <button class="primary" id="btnLancarBanco" style="padding:8px 14px;font-size:13px">+ Lançar</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;max-width:1000px">
-      ${funcionarios.filter(f=>isAtivo(f)&&['Ialey','Jhennifer','Michelly','Natália'].includes(f.nome)).map(f=>{
+      ${funcionarios.filter(isAtivo).map(f=>{
         const s=saldoPorFunc[f.id];
         const saldoStr=(s.saldo>=0?'+':'')+(s.saldo>0?s.saldo+'h':'0h');
         const saldoColor=s.saldo>0?'var(--ok)':s.saldo<0?'var(--bad)':'var(--muted)';
@@ -996,7 +1068,7 @@ function renderBanco(){
         <div style="background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)">
             <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:var(--ink)">${f.nome}</div>
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Vendedora</div>
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">${f.funcao}</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:10px;font-size:13.5px">
             <div style="display:flex;justify-content:space-between;align-items:baseline">
@@ -1538,7 +1610,7 @@ document.getElementById('nextM').onclick=()=>{cursor=addMonths(cursor,1);refresh
 
 /* ===== BANCO DE HORAS ===== */
 function openBancoModal(){
-  const funcList=funcionarios.filter(f=>isAtivo(f)&&['Ialey','Jhennifer','Michelly','Natália'].includes(f.nome));
+  const funcList=funcionarios.filter(isAtivo);
   const html=`
     <div class="modal-overlay">
       <div class="modal" style="max-width:400px">
