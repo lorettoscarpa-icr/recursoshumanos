@@ -310,6 +310,9 @@
       <div class="monthlabel">Ano <span class="yr num" id="yLabel2"></span></div>
       <button class="navbtn" id="nextY">›</button>
     </div>
+    <div style="padding:0 20px;margin-bottom:12px">
+      <input type="text" id="yearSearch" placeholder="Procurar funcionário..." style="width:100%;max-width:300px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+    </div>
     <div class="yeargrid" id="yeargrid"></div>
   </section>
 
@@ -741,12 +744,24 @@ function renderCalendar(){
 }
 
 /* ============ render: ano ============ */
+let yearFilter='';
 function renderYear(){
   document.getElementById('yLabel2').textContent=yearCursor;
   const wrap=document.getElementById('yeargrid');wrap.innerHTML='';
+  
+  // Filtrar funcionários por search
+  const aFunc=funcionarios.filter(f=>f.nome.toLowerCase().includes(yearFilter.toLowerCase()));
+  
   for(let m=0;m<12;m++){
     const box=document.createElement('div');box.className='minimonth';
-    box.innerHTML=`<h3>${MESES[m]}</h3>`;
+    const h3=document.createElement('h3');h3.textContent=MESES[m];
+    h3.style.cursor='pointer';h3.style.transition='color .2s';
+    h3.title='Clique para ver este mês';
+    h3.onmouseover=()=>h3.style.color='var(--gold)';
+    h3.onmouseout=()=>h3.style.color='';
+    h3.onclick=()=>{cursor=new Date(yearCursor,m,1);switchView('calendário');};
+    box.appendChild(h3);
+    
     const g=document.createElement('div');g.className='minigrid';
     DOW.forEach(d=>{const e=document.createElement('div');e.className='minicell empty';e.style.fontSize='8px';e.textContent=d[0];g.appendChild(e);});
     const start=new Date(yearCursor,m,1).getDay();
@@ -755,12 +770,12 @@ function renderYear(){
     for(let day=1;day<=total;day++){
       const dISO=iso(new Date(yearCursor,m,day));
       const e=document.createElement('div');e.className='minicell';e.textContent=day;
-      const ls=lancsNoDia(dISO);
+      const ls=lancsNoDia(dISO).filter(x=>aFunc.some(f=>f.id===x.f.id));
       if(ls.some(x=>x.l.tipo==='ferias'))e.classList.add('ferias');
       else if(ls.some(x=>x.l.tipo==='folga'))e.classList.add('folga');
-      else if(aniversNoDia(dISO).length)e.classList.add('aniv');
+      else if(aniversNoDia(dISO).filter(a=>aFunc.some(f=>f.id===a.f.id)).length)e.classList.add('aniv');
       e.title=dISO;
-      e.addEventListener('click',()=>{cursor=new Date(yearCursor,m,1);switchView('cal');});
+      e.addEventListener('click',()=>{cursor=new Date(yearCursor,m,1);switchView('calendário');});
       g.appendChild(e);
     }
     box.appendChild(g);wrap.appendChild(box);
@@ -779,7 +794,38 @@ function renderPeople(){
   const deslig=funcionarios.length-ativos.length;
   summary.innerHTML=`<div><b>${ativos.length}</b> ativos ${porArea?'· '+porArea:''}${deslig?` · ${deslig} desligado(s)`:''}</div>`;
   wrap.appendChild(summary);
-  funcionarios.slice().sort((a,b)=>(isAtivo(a)===isAtivo(b))?0:(isAtivo(a)?-1:1)).forEach(f=>{
+  
+  // Separar e ordenar por tempo de casa (mais antigo primeiro)
+  const vendedoras=ativos.filter(f=>['Ialey','Jhennifer','Michelly','Natália'].includes(f.nome)).sort((a,b)=>parse(b.admissao)-parse(a.admissao));
+  const operacao=ativos.filter(f=>['Yuri','Edson','Gustavo'].includes(f.nome)).sort((a,b)=>parse(b.admissao)-parse(a.admissao));
+  const desligados=funcionarios.filter(f=>!isAtivo(f)).sort((a,b)=>parse(b.admissao)-parse(a.admissao));
+  
+  const sections=[{titulo:'Vendedoras',items:vendedoras},{titulo:'Operação',items:operacao}];
+  
+  sections.forEach(sec=>{
+    if(sec.items.length){
+      const secDiv=document.createElement('div');
+      const secTitle=document.createElement('h3');
+      secTitle.style.cssText='font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 12px;font-family:Barlow,sans-serif';
+      secTitle.innerHTML=`${sec.titulo} <span style="color:var(--ok)">${sec.items.length}</span>`;
+      secDiv.appendChild(secTitle);
+      wrap.appendChild(secDiv);
+      renderPeopleList(sec.items,wrap);
+    }
+  });
+  
+  if(desligados.length){
+    const secDiv=document.createElement('div');
+    const secTitle=document.createElement('h3');
+    secTitle.style.cssText='font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 12px;font-family:Barlow,sans-serif';
+    secTitle.innerHTML=`Desligados <span style="color:var(--muted)">${desligados.length}</span>`;
+    secDiv.appendChild(secTitle);
+    wrap.appendChild(secDiv);
+    renderPeopleList(desligados,wrap);
+  }
+}
+function renderPeopleList(list,wrap){
+  list.forEach(f=>{
     const fer=feriasInfo(f), ban=bancoInfo(f), pr=prioridade(f), ativo=isAtivo(f);
     const card=document.createElement('div');card.className='pcard'+(ativo?'':' inativo');
     let metrics='';
@@ -820,10 +866,12 @@ function renderPeople(){
       </div>`;
     wrap.appendChild(card);
   });
+  
   wrap.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openPerson(b.dataset.edit)));
   wrap.querySelectorAll('[data-hist]').forEach(b=>b.addEventListener('click',()=>openHistorico(b.dataset.hist)));
   wrap.querySelectorAll('[data-lanc]').forEach(b=>b.addEventListener('click',()=>openLancamento(null,b.dataset.lanc)));
 }
+
 function diasDesdeAdmissao(f){if(!f.admissao)return null;return Math.floor((TODAY-parse(f.admissao))/86400000);}
 function anosDesdeAdmissao(f){const d=diasDesdeAdmissao(f);return d?Math.floor(d/365):null;}
 function proximoAniversarioTempoDesCasa(f){
@@ -1458,12 +1506,13 @@ function switchView(v){
 // Carregar dados do Firestore ao iniciar
 loadFromFirestore();
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchView(t.dataset.view)));
-document.getElementById('prevM').onclick=()=>{cursor=addMonths(cursor,-1);renderCalendar();};
+document.getElementById('prevM').onclick=()=>{cursor=addMonths(cursor,-1);refreshAll();};
 document.getElementById('addBtn').onclick=()=>openLancamento(HOJE_ISO);
 document.getElementById('todayBtn').onclick=()=>{cursor=new Date(TODAY.getFullYear(),TODAY.getMonth(),1);renderCalendar();};
 document.getElementById('calSearch').oninput=(e)=>{calendarFilter=e.target.value;renderCalendar();};
 document.getElementById('prevY').onclick=()=>{yearCursor--;renderYear();};
 document.getElementById('nextY').onclick=()=>{yearCursor++;renderYear();};
+document.getElementById('yearSearch').oninput=(e)=>{yearFilter=e.target.value;renderYear();};
 document.getElementById('addPerson').onclick=()=>openPerson(null);
 document.getElementById('copyRep').onclick=()=>{navigator.clipboard.writeText(reportText()).then(()=>alert('Relatório copiado.'));};
 document.getElementById('printRep').onclick=()=>openPrint(buildReportDoc());
@@ -1485,7 +1534,7 @@ document.getElementById('saveTpl').onclick=()=>{
   document.getElementById('tplbox').style.display='none';
   alert('Modelos salvos.');
 };
-document.getElementById('nextM').onclick=()=>{cursor=addMonths(cursor,1);renderCalendar();};
+document.getElementById('nextM').onclick=()=>{cursor=addMonths(cursor,1);refreshAll();};
 
 /* ===== BANCO DE HORAS ===== */
 function openBancoModal(){
