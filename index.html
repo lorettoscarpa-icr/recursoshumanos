@@ -276,7 +276,6 @@
   <div class="tabs">
     <button class="tab active" data-view="cal">Calendário</button>
     <button class="tab" data-view="alertas">Alertas</button>
-    <button class="tab" data-view="ano">Ano</button>
     <button class="tab" data-view="pessoas">Equipe</button>
     <button class="tab" data-view="relatorio">Relatório</button>
     <button class="tab" data-view="banco">Banco de Horas</button>
@@ -302,6 +301,7 @@
       <div class="spacer"></div>
       <input type="text" id="calSearch" placeholder="Procurar funcionário..." style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:14px;width:200px">
       <button class="ghost" id="todayBtn">Hoje</button>
+      <button class="ghost" id="viewYearBtn" style="padding:8px 14px;font-size:13px">📅 Ano</button>
       <button class="primary" id="addBtn">+ Lançar férias / folga</button>
     </div>
     <div id="ausenciasPanel" style="margin-bottom:20px;padding:16px;background:var(--cream);border-radius:12px;border-left:4px solid var(--olive)"></div>
@@ -311,18 +311,15 @@
       <span><i class="dot" style="background:var(--aniv)"></i> Aniversário</span>
       <span><i class="dot" style="background:var(--especial)"></i> Sábado Especial</span>
     </div>
-    <div class="grid" id="cal"></div>
+    <div id="calMonthView">
+      <div class="grid" id="cal"></div>
+    </div>
+    <div id="calYearView" style="display:none">
+      <div class="yeargrid" id="yeargrid"></div>
+    </div>
   </section>
 
   <!-- ANO -->
-  <section class="view" id="view-ano">
-    <div class="calbar">
-      <button class="navbtn" id="prevY">‹</button>
-      <div class="monthlabel">Ano <span class="yr num" id="yLabel2"></span></div>
-      <button class="navbtn" id="nextY">›</button>
-    </div>
-    <div class="yeargrid" id="yeargrid"></div>
-  </section>
 
   <!-- PESSOAS -->
   <section class="view" id="view-pessoas">
@@ -836,7 +833,7 @@ function renderYear(){
       else if(ls.some(x=>x.l.tipo==='folga'))e.classList.add('folga');
       else if(aniversNoDia(dISO).length)e.classList.add('aniv');
       e.title=dISO;
-      e.addEventListener('click',()=>{cursor=new Date(yearCursor,m,1);switchView('calendário');});
+      e.addEventListener('click',()=>{cursor=new Date(yearCursor,m,1);toggleCalendarMode(false);});
       g.appendChild(e);
     }
     box.appendChild(g);wrap.appendChild(box);
@@ -1533,7 +1530,8 @@ function renderAlertas(){
     const d=diasAteAniversarioTempo(f);
     if(d!==null&&d<=30&&d>=0){
       const anos=anosDesdeAdmissao(f)+1;
-      marcos.push({nome:f.nome,sub:`Completa ${anos} ano${anos>1?'s':''} em ${d} dia(s) · ${fmtBR(proximoAniversarioTempoDesCasa(f))}`});
+      const proxData=proximoAniversarioTempoDesCasa(f);
+      marcos.push({nome:f.nome,sub:`Completa ${anos} ano${anos>1?'s':''} em ${d} dia(s) · ${fmtBR(proxData?iso(proxData):'')}`});
     }
   });
   if(marcos.length)groups.push({titulo:'Marcos de tempo de casa',icon:'🎉',cls:'ok',items:marcos});
@@ -1578,7 +1576,6 @@ function switchView(v){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
   document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
-  if(v==='ano')renderYear();
   if(v==='alertas')renderAlertas();
   if(v==='pessoas')renderPeople();
   if(v==='relatorio')renderReport();
@@ -1586,11 +1583,62 @@ function switchView(v){
   if(v==='docs')renderDocs();
 }
 // Carregar dados do Firestore ao iniciar
-loadFromFirestore();
+// loadFromFirestore(); // TODO: ativar quando Firebase estiver pronto
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchView(t.dataset.view)));
+// Inicializa em janeiro 2026 pra mostrar dados reais
+cursor=new Date(2026,0,1);
+renderCalendar();
+renderAlertas();
 document.getElementById('prevM').onclick=()=>{cursor=addMonths(cursor,-1);refreshAll();};
 document.getElementById('addBtn').onclick=()=>openLancamento(HOJE_ISO);
 document.getElementById('todayBtn').onclick=()=>{cursor=new Date(TODAY.getFullYear(),TODAY.getMonth(),1);renderCalendar();};
+document.getElementById('viewYearBtn').onclick=()=>{
+  document.getElementById('calMonthView').style.display='none';
+  document.getElementById('calYearView').style.display='block';
+  yearCursor=cursor.getFullYear();
+  renderYear();
+};
+// Botões de navegação do ano agora usam a mesma calbar
+const prevYBtn=document.createElement('button');prevYBtn.className='navbtn';prevYBtn.textContent='‹';prevYBtn.style.display='none';
+const nextYBtn=document.createElement('button');nextYBtn.className='navbtn';nextYBtn.textContent='›';nextYBtn.style.display='none';
+const yearLabelSpan=document.createElement('span');yearLabelSpan.className='yr num';yearLabelSpan.id='yLabelInline';yearLabelSpan.style.display='none';
+// Modificar calbar para mostrar/esconder botões
+const calbar=document.querySelector('.calbar');
+const monthlabel=calbar.querySelector('.monthlabel');
+const origPrevM=document.getElementById('prevM');const origNextM=document.getElementById('nextM');
+// Função auxiliar para alternar modo ano/mês
+function toggleCalendarMode(isYearMode){
+  const monthView=document.getElementById('calMonthView');const yearView=document.getElementById('calYearView');
+  const search=document.getElementById('calSearch');const addBtn=document.getElementById('addBtn');const todayBtn=document.getElementById('todayBtn');const viewYearBtn=document.getElementById('viewYearBtn');
+  if(isYearMode){
+    monthView.style.display='none';
+    yearView.style.display='block';
+    search.style.display='none';
+    addBtn.style.display='none';
+    todayBtn.style.display='none';
+    viewYearBtn.textContent='📆 Voltar';
+    origPrevM.textContent='‹';origNextM.textContent='›';
+    origPrevM.onclick=()=>{yearCursor--;renderYear();};
+    origNextM.onclick=()=>{yearCursor++;renderYear();};
+    monthlabel.innerHTML=`Ano <span class="yr num">${yearCursor}</span>`;
+  }else{
+    monthView.style.display='block';
+    yearView.style.display='none';
+    search.style.display='block';
+    addBtn.style.display='block';
+    todayBtn.style.display='block';
+    viewYearBtn.textContent='📅 Ano';
+    origPrevM.onclick=()=>{cursor=addMonths(cursor,-1);renderCalendar();};
+    origNextM.onclick=()=>{cursor=addMonths(cursor,1);renderCalendar();};
+    monthlabel.innerHTML=`<span id="mLabel"></span> <span class="yr num" id="yLabel"></span>`;
+    renderCalendar();
+  }
+}
+// Modificar toggleCalendarMode para ser ativado pelo botão
+document.getElementById('viewYearBtn').onclick=()=>{
+  const isCurrentlyYear=document.getElementById('calYearView').style.display!=='none';
+  toggleCalendarMode(!isCurrentlyYear);
+};
 document.getElementById('calSearch').oninput=(e)=>{calendarFilter=e.target.value;renderCalendar();};
 document.getElementById('prevY').onclick=()=>{yearCursor--;renderYear();};
 document.getElementById('nextY').onclick=()=>{yearCursor++;renderYear();};
@@ -1724,7 +1772,6 @@ function deleteDoc(id){
 function refreshAll(){renderCalendar();
   if(document.getElementById('view-alertas').classList.contains('active'))renderAlertas();
   if(document.getElementById('view-pessoas').classList.contains('active'))renderPeople();
-  if(document.getElementById('view-ano').classList.contains('active'))renderYear();
   if(document.getElementById('view-relatorio').classList.contains('active'))renderReport();
   if(document.getElementById('view-banco').classList.contains('active'))renderBanco();
   if(document.getElementById('view-docs').classList.contains('active'))renderDocs();
