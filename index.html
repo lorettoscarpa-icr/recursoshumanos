@@ -1596,8 +1596,6 @@ function switchView(v){
 // Carregar dados do Firestore ao iniciar
 // loadFromFirestore(); // TODO: ativar quando Firebase estiver pronto
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchView(t.dataset.view)));
-// Inicializa em janeiro 2026 pra mostrar dados reais
-cursor=new Date(2026,0,1);
 renderCalendar();
 renderAlertas();
 document.getElementById('prevM').onclick=()=>{cursor=addMonths(cursor,-1);refreshAll();};
