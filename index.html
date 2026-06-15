@@ -815,7 +815,6 @@ function renderCalendar(){
 
 /* ============ render: ano ============ */
 function renderYear(){
-  document.getElementById('yLabel2').textContent=yearCursor;
   const wrap=document.getElementById('yeargrid');wrap.innerHTML='';
   for(let m=0;m<12;m++){
     const box=document.createElement('div');box.className='minimonth';
@@ -833,7 +832,17 @@ function renderYear(){
       else if(ls.some(x=>x.l.tipo==='folga'))e.classList.add('folga');
       else if(aniversNoDia(dISO).length)e.classList.add('aniv');
       e.title=dISO;
-      e.addEventListener('click',()=>{cursor=new Date(yearCursor,m,1);toggleCalendarMode(false);});
+      e.addEventListener('click',()=>{
+        cursor=new Date(yearCursor,m,1);
+        isYearViewActive=false;
+        document.getElementById('calMonthView').style.display='block';
+        document.getElementById('calYearView').style.display='none';
+        document.getElementById('calSearch').style.display='block';
+        document.getElementById('addBtn').style.display='block';
+        document.getElementById('todayBtn').style.display='block';
+        document.getElementById('viewYearBtn').textContent='📅 Ano';
+        renderCalendar();
+      });
       g.appendChild(e);
     }
     box.appendChild(g);wrap.appendChild(box);
@@ -1592,56 +1601,55 @@ renderAlertas();
 document.getElementById('prevM').onclick=()=>{cursor=addMonths(cursor,-1);refreshAll();};
 document.getElementById('addBtn').onclick=()=>openLancamento(HOJE_ISO);
 document.getElementById('todayBtn').onclick=()=>{cursor=new Date(TODAY.getFullYear(),TODAY.getMonth(),1);renderCalendar();};
+
+let isYearViewActive=false;
+
 document.getElementById('viewYearBtn').onclick=()=>{
-  document.getElementById('calMonthView').style.display='none';
-  document.getElementById('calYearView').style.display='block';
-  yearCursor=cursor.getFullYear();
-  renderYear();
-};
-// Botões de navegação do ano agora usam a mesma calbar
-const prevYBtn=document.createElement('button');prevYBtn.className='navbtn';prevYBtn.textContent='‹';prevYBtn.style.display='none';
-const nextYBtn=document.createElement('button');nextYBtn.className='navbtn';nextYBtn.textContent='›';nextYBtn.style.display='none';
-const yearLabelSpan=document.createElement('span');yearLabelSpan.className='yr num';yearLabelSpan.id='yLabelInline';yearLabelSpan.style.display='none';
-// Modificar calbar para mostrar/esconder botões
-const calbar=document.querySelector('.calbar');
-const monthlabel=calbar.querySelector('.monthlabel');
-const origPrevM=document.getElementById('prevM');const origNextM=document.getElementById('nextM');
-// Função auxiliar para alternar modo ano/mês
-function toggleCalendarMode(isYearMode){
-  const monthView=document.getElementById('calMonthView');const yearView=document.getElementById('calYearView');
-  const search=document.getElementById('calSearch');const addBtn=document.getElementById('addBtn');const todayBtn=document.getElementById('todayBtn');const viewYearBtn=document.getElementById('viewYearBtn');
-  if(isYearMode){
-    monthView.style.display='none';
-    yearView.style.display='block';
-    search.style.display='none';
-    addBtn.style.display='none';
-    todayBtn.style.display='none';
-    viewYearBtn.textContent='📆 Voltar';
-    origPrevM.textContent='‹';origNextM.textContent='›';
-    origPrevM.onclick=()=>{yearCursor--;renderYear();};
-    origNextM.onclick=()=>{yearCursor++;renderYear();};
-    monthlabel.innerHTML=`Ano <span class="yr num">${yearCursor}</span>`;
+  isYearViewActive=!isYearViewActive;
+  if(isYearViewActive){
+    // Ativar vista anual
+    document.getElementById('calMonthView').style.display='none';
+    document.getElementById('calYearView').style.display='block';
+    document.getElementById('calSearch').style.display='none';
+    document.getElementById('addBtn').style.display='none';
+    document.getElementById('todayBtn').style.display='none';
+    document.getElementById('viewYearBtn').textContent='📆 Voltar';
+    yearCursor=cursor.getFullYear();
+    renderYear();
   }else{
-    monthView.style.display='block';
-    yearView.style.display='none';
-    search.style.display='block';
-    addBtn.style.display='block';
-    todayBtn.style.display='block';
-    viewYearBtn.textContent='📅 Ano';
-    origPrevM.onclick=()=>{cursor=addMonths(cursor,-1);renderCalendar();};
-    origNextM.onclick=()=>{cursor=addMonths(cursor,1);renderCalendar();};
-    monthlabel.innerHTML=`<span id="mLabel"></span> <span class="yr num" id="yLabel"></span>`;
+    // Voltar vista mensal
+    document.getElementById('calMonthView').style.display='block';
+    document.getElementById('calYearView').style.display='none';
+    document.getElementById('calSearch').style.display='block';
+    document.getElementById('addBtn').style.display='block';
+    document.getElementById('todayBtn').style.display='block';
+    document.getElementById('viewYearBtn').textContent='📅 Ano';
     renderCalendar();
   }
-}
-// Modificar toggleCalendarMode para ser ativado pelo botão
-document.getElementById('viewYearBtn').onclick=()=>{
-  const isCurrentlyYear=document.getElementById('calYearView').style.display!=='none';
-  toggleCalendarMode(!isCurrentlyYear);
 };
+
+// Navegação do calendário - precisa saber qual view está ativa
+document.getElementById('prevM').onclick=()=>{
+  if(isYearViewActive){
+    yearCursor--;
+    renderYear();
+  }else{
+    cursor=addMonths(cursor,-1);
+    renderCalendar();
+  }
+};
+
+document.getElementById('nextM').onclick=()=>{
+  if(isYearViewActive){
+    yearCursor++;
+    renderYear();
+  }else{
+    cursor=addMonths(cursor,1);
+    renderCalendar();
+  }
+};
+
 document.getElementById('calSearch').oninput=(e)=>{calendarFilter=e.target.value;renderCalendar();};
-document.getElementById('prevY').onclick=()=>{yearCursor--;renderYear();};
-document.getElementById('nextY').onclick=()=>{yearCursor++;renderYear();};
 document.getElementById('addPerson').onclick=()=>openPerson(null);
 document.getElementById('copyRep').onclick=()=>{navigator.clipboard.writeText(reportText()).then(()=>alert('Relatório copiado.'));};
 document.getElementById('printRep').onclick=()=>openPrint(buildReportDoc());
@@ -1649,8 +1657,8 @@ document.getElementById('printRep').onclick=()=>openPrint(buildReportDoc());
 document.getElementById('rep-clear').onclick=()=>{['rep-pessoa','rep-de','rep-ate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderReport();};
 
 // Alertas: navegação de mês (compartilha o cursor com o calendário) + modelos
-document.getElementById('prevMA').onclick=()=>{cursor=addMonths(cursor,-1);renderCalendar();renderAlertas();};
-document.getElementById('nextMA').onclick=()=>{cursor=addMonths(cursor,1);renderCalendar();renderAlertas();};
+document.getElementById('prevMA').onclick=()=>{console.log('prev alertas clicked');cursor=addMonths(cursor,-1);console.log('novo cursor:',cursor);renderAlertas();};
+document.getElementById('nextMA').onclick=()=>{console.log('next alertas clicked');cursor=addMonths(cursor,1);console.log('novo cursor:',cursor);renderAlertas();};
 document.getElementById('toggleTpl').onclick=()=>{
   const box=document.getElementById('tplbox');
   const show=box.style.display==='none';
