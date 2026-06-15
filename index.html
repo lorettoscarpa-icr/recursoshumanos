@@ -108,7 +108,7 @@
   /* ---------- People ---------- */
   .people{display:flex;flex-direction:column;gap:20px}
   .people-section{display:grid;gap:16px}
-  .people-section.vendedoras{grid-template-columns:repeat(4,1fr)}
+  .people-section.vendedoras{grid-template-columns:repeat(2,1fr)}
   .people-section.operacao{grid-template-columns:repeat(3,1fr)}
   .people-section.desligados{grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
   .pcard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:0;overflow:hidden;box-shadow:var(--shadow)}
@@ -300,6 +300,7 @@
       <span class="month-pill" id="mPill"></span>
       <div class="spacer"></div>
       <input type="text" id="calSearch" placeholder="Procurar funcionário..." style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:14px;width:200px">
+      <button class="ghost" id="clearSearch" style="padding:8px 12px;font-size:13px;display:none">✕ Limpar</button>
       <button class="ghost" id="todayBtn">Hoje</button>
       <button class="ghost" id="viewYearBtn" style="padding:8px 14px;font-size:13px">📅 Ano</button>
       <button class="primary" id="addBtn">+ Lançar férias / folga</button>
@@ -1534,16 +1535,17 @@ function renderAlertas(){
   if(venc.length)groups.push({titulo:'Atenção — férias a vencer',icon:'⏳',cls:'warn',items:venc});
 
   // --- Aniversários de tempo de casa (1 ano, 2 anos, etc) ---
-  const marcos=[];
+  // --- Aniversário de tempo de casa (apenas no mês) ---
+  const aniversarios=[];
   funcionarios.filter(isAtivo).forEach(f=>{
-    const d=diasAteAniversarioTempo(f);
-    if(d!==null&&d<=30&&d>=0){
+    if(!f.admissao)return;
+    const proxData=proximoAniversarioTempoDesCasa(f);
+    if(proxData && proxData.getMonth()===m && proxData.getFullYear()===y){
       const anos=anosDesdeAdmissao(f)+1;
-      const proxData=proximoAniversarioTempoDesCasa(f);
-      marcos.push({nome:f.nome,sub:`Completa ${anos} ano${anos>1?'s':''} em ${d} dia(s) · ${fmtBR(proxData?iso(proxData):'')}`});
+      aniversarios.push({nome:f.nome,sub:`Completa ${anos} ano${anos>1?'s':''} em ${fmtBR(iso(proxData))}`});
     }
   });
-  if(marcos.length)groups.push({titulo:'Marcos de tempo de casa',icon:'🎉',cls:'ok',items:marcos});
+  if(aniversarios.length)groups.push({titulo:'Aniversário de tempo de casa',icon:'🎂',cls:'ok',items:aniversarios});
 
   // --- Conflitos de cobertura no mês (trava: 2+ do mesmo grupo fora no mesmo dia) ---
   const totalDias=new Date(y,m+1,0).getDate();
@@ -1649,7 +1651,58 @@ document.getElementById('nextM').onclick=()=>{
   }
 };
 
-document.getElementById('calSearch').oninput=(e)=>{calendarFilter=e.target.value;renderCalendar();};
+document.getElementById('calSearch').oninput=(e)=>{
+  calendarFilter=e.target.value.trim();
+  document.getElementById('clearSearch').style.display=calendarFilter?'block':'none';
+  
+  // Se digitou um nome, navega para próxima data desse funcionário
+  if(calendarFilter.length>=2){
+    const func=funcionarios.find(f=>f.nome.toLowerCase().includes(calendarFilter.toLowerCase()));
+    if(func){
+      // Buscar próximo evento: férias, folga ou aniversário
+      const hoje=new Date();
+      let proximoEvento=null;
+      let proximaData=null;
+      
+      // Procurar na próxima data de férias/folga
+      lancamentos.forEach(l=>{
+        if(l.funcId===func.id){
+          const inicio=parse(l.inicio);
+          if(inicio>=hoje && (!proximaData || inicio<proximaData)){
+            proximaData=inicio;
+            proximoEvento='evento';
+          }
+        }
+      });
+      
+      // Procurar próximo aniversário
+      if(func.nascimento){
+        const n=parse(func.nascimento);
+        let proxAniversario=new Date(hoje.getFullYear(),n.getMonth(),n.getDate());
+        if(proxAniversario<hoje){
+          proxAniversario=new Date(hoje.getFullYear()+1,n.getMonth(),n.getDate());
+        }
+        if(!proximaData || proxAniversario<proximaData){
+          proximaData=proxAniversario;
+          proximoEvento='aniversario';
+        }
+      }
+      
+      // Se encontrou um evento, navega para aquele mês
+      if(proximaData){
+        cursor=new Date(proximaData.getFullYear(),proximaData.getMonth(),1);
+      }
+    }
+  }
+  
+  renderCalendar();
+};
+document.getElementById('clearSearch').onclick=()=>{
+  calendarFilter='';
+  document.getElementById('calSearch').value='';
+  document.getElementById('clearSearch').style.display='none';
+  renderCalendar();
+};
 document.getElementById('addPerson').onclick=()=>openPerson(null);
 document.getElementById('copyRep').onclick=()=>{navigator.clipboard.writeText(reportText()).then(()=>alert('Relatório copiado.'));};
 document.getElementById('printRep').onclick=()=>openPrint(buildReportDoc());
