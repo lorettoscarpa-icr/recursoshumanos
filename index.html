@@ -1594,7 +1594,7 @@ function switchView(v){
   if(v==='docs')renderDocs();
 }
 // Carregar dados do Firestore ao iniciar
-// loadFromFirestore(); // TODO: ativar quando Firebase estiver pronto
+loadFromFirestore();
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchView(t.dataset.view)));
 renderCalendar();
 renderAlertas();
