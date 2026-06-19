@@ -916,9 +916,7 @@ function renderAusenciasPanel(y,m){
       html+=`<div style="margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">👥 Vendedoras</div>`;
       html+=vend.map(a=>`
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
-          <div style="width:44px;height:44px;border-radius:50%;background:#4a90e2;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0">
-            ${a.f.nome.charAt(0).toUpperCase()}
-          </div>
+          <div class="avatar" style="width:44px;height:44px;border-radius:50%;background:#4a90e2;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0;overflow:hidden">${avatarHTML(a.f)}</div>
           <div style="flex:1;font-size:12px">
             <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
             <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} (${daysBetween(a.l.inicio,a.l.fim)} dias)</div>
@@ -931,9 +929,7 @@ function renderAusenciasPanel(y,m){
       html+=`<div style="margin-top:8px;margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">🚚 Operação</div>`;
       html+=oper.map(a=>`
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
-          <div style="width:44px;height:44px;border-radius:50%;background:#5f7045;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0">
-            ${a.f.nome.charAt(0).toUpperCase()}
-          </div>
+          <div class="avatar" style="width:44px;height:44px;border-radius:50%;background:#5f7045;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0;overflow:hidden">${avatarHTML(a.f)}</div>
           <div style="flex:1;font-size:12px">
             <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
             <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} (${daysBetween(a.l.inicio,a.l.fim)} dias)</div>
@@ -959,9 +955,7 @@ function renderAusenciasPanel(y,m){
         const label=a.tipo==='folga_aniversario'?'Aniversário':'Especial';
         return `
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
-          <div style="width:44px;height:44px;border-radius:50%;background:#c69a2e;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0">
-            ${a.f.nome.charAt(0).toUpperCase()}
-          </div>
+          <div class="avatar" style="width:44px;height:44px;border-radius:50%;background:#c69a2e;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0;overflow:hidden">${avatarHTML(a.f)}</div>
           <div style="flex:1;font-size:12px">
             <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
             <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} · ${label}</div>
@@ -976,9 +970,7 @@ function renderAusenciasPanel(y,m){
         const label=a.tipo==='folga_aniversario'?'Aniversário':'Especial';
         return `
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
-          <div style="width:44px;height:44px;border-radius:50%;background:#5f7045;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0">
-            ${a.f.nome.charAt(0).toUpperCase()}
-          </div>
+          <div class="avatar" style="width:44px;height:44px;border-radius:50%;background:#5f7045;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0;overflow:hidden">${avatarHTML(a.f)}</div>
           <div style="flex:1;font-size:12px">
             <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
             <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} · ${label}</div>
@@ -1002,9 +994,7 @@ function renderAusenciasPanel(y,m){
       html+=`<div style="margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">👥 Vendedoras</div>`;
       html+=vend.map(a=>`
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
-          <div style="width:44px;height:44px;border-radius:50%;background:#c84c3a;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0">
-            ${a.f.nome.charAt(0).toUpperCase()}
-          </div>
+          <div class="avatar" style="width:44px;height:44px;border-radius:50%;background:#c84c3a;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0;overflow:hidden">${avatarHTML(a.f)}</div>
           <div style="flex:1;font-size:12px">
             <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
             <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} (${daysBetween(a.l.inicio,a.l.fim)} dias)</div>
@@ -1017,9 +1007,7 @@ function renderAusenciasPanel(y,m){
       html+=`<div style="margin-top:8px;margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">🚚 Operação</div>`;
       html+=oper.map(a=>`
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
-          <div style="width:44px;height:44px;border-radius:50%;background:#c84c3a;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0">
-            ${a.f.nome.charAt(0).toUpperCase()}
-          </div>
+          <div class="avatar" style="width:44px;height:44px;border-radius:50%;background:#c84c3a;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0;overflow:hidden">${avatarHTML(a.f)}</div>
           <div style="flex:1;font-size:12px">
             <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
             <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} (${daysBetween(a.l.inicio,a.l.fim)} dias)</div>
