@@ -15,7 +15,8 @@
     --ferias:#b14a3f; --ferias-bg:#f6e4e0;
     --folga:#6a5b93; --folga-bg:#e9e5f2;
     --aniv:#c69a2e; --aniv-bg:#f8eecb;
-    --especial:#7d8a4f;
+    --especial:#7d8a4f; --especial-bg:#e8ede0;
+    --atestado:#c84c3a; --atestado-bg:#fce8e5;
     --ink:#2b2b25; --muted:#8c8779; --line:#e6e1d4;
     --ok:#5f7045; --warn:#c08a2d; --bad:#b14a3f;
     --shadow:0 8px 30px rgba(53,61,40,.10);
@@ -89,11 +90,13 @@
   .chip.folga{background:var(--folga-bg);color:var(--folga)}
   .chip.aniv{background:var(--aniv-bg);color:var(--aniv)}
   .chip.esp{background:#eef0e3;color:var(--especial);font-weight:700}
+  .chip.atestado{background:var(--atestado-bg);color:var(--atestado)}
   .cell.ferias{background:var(--ferias);color:#fff}
   .cell.folga{background:var(--folga);color:#fff}
   .cell.aniv{background:var(--aniv);color:#fff}
   .cell.especial{background:var(--especial);color:#fff}
-  .cell.ferias .chip, .cell.folga .chip, .cell.aniv .chip, .cell.especial .chip{opacity:0.9;background:rgba(255,255,255,.2)!important;color:#fff!important;border:1px solid rgba(255,255,255,.4)}
+  .cell.atestado{background:var(--atestado);color:#fff}
+  .cell.ferias .chip, .cell.folga .chip, .cell.aniv .chip, .cell.especial .chip, .cell.atestado .chip{opacity:0.9;background:rgba(255,255,255,.2)!important;color:#fff!important;border:1px solid rgba(255,255,255,.4)}
   /* ---------- Year overview ---------- */
   .yeargrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
   .minimonth{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
@@ -104,6 +107,8 @@
   .minicell.ferias{background:var(--ferias);color:#fff}
   .minicell.folga{background:var(--folga);color:#fff}
   .minicell.aniv{background:var(--aniv);color:#fff}
+  .minicell.especial{background:var(--especial);color:#fff}
+  .minicell.atestado{background:var(--atestado);color:#fff}
   .minicell.empty{background:transparent;cursor:default}
   /* ---------- People ---------- */
   .people{display:flex;flex-direction:column;gap:20px}
@@ -175,6 +180,9 @@
   .typepick button{flex:1;padding:10px;border-radius:9px;border:1.5px solid var(--line);font-weight:600;font-size:13px;color:var(--muted);background:#fcfbf7}
   .typepick button.sel.ferias{border-color:var(--ferias);background:var(--ferias-bg);color:var(--ferias)}
   .typepick button.sel.folga{border-color:var(--folga);background:var(--folga-bg);color:var(--folga)}
+  .typepick button.sel.aniv{border-color:var(--aniv);background:var(--aniv-bg);color:var(--aniv)}
+  .typepick button.sel.especial{border-color:var(--especial);background:var(--especial-bg);color:var(--especial)}
+  .typepick button.sel.atestado{border-color:var(--atestado);background:var(--atestado-bg);color:var(--atestado)}
   .mfoot{padding:14px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line)}
   .mfoot .del{margin-right:auto;color:var(--bad);font-weight:600;font-size:13px;padding:9px 4px}
   textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;resize:vertical}
@@ -277,6 +285,7 @@
     <button class="tab active" data-view="cal">Calendário</button>
     <button class="tab" data-view="alertas">Alertas</button>
     <button class="tab" data-view="pessoas">Equipe</button>
+    <button class="tab" data-view="escala">Escala</button>
     <button class="tab" data-view="relatorio">Relatório</button>
     <button class="tab" data-view="banco">Banco de Horas</button>
     <button class="tab" data-view="docs">Documentos</button>
@@ -324,6 +333,34 @@
       <button class="primary" id="addPerson">+ Adicionar funcionário</button>
     </div>
     <div class="people" id="people"></div>
+  </section>
+
+  <!-- ESCALA -->
+  <section class="view" id="view-escala">
+    <div class="calbar">
+      <div class="monthlabel" style="font-size:22px">Escala de Trabalho 5x2</div>
+      <div class="spacer"></div>
+    </div>
+    <div style="padding:20px">
+      <!-- OPERAÇÃO -->
+      <div style="margin-bottom:30px;padding:16px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)">
+        <h3 style="margin-top:0;color:var(--olive);font-size:16px">🔧 Operação (Folgas Fixas)</h3>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Configure folgas fixas para cada operador. Validar cobertura simultânea.</div>
+        <div id="escala-operacao" style="display:grid;gap:12px"></div>
+      </div>
+
+      <!-- VENDEDORAS -->
+      <div style="padding:16px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)">
+        <h3 style="margin-top:0;color:var(--olive);font-size:16px">👥 Vendedoras (Revezamento 5x2)</h3>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">
+          • Domingo: Fixo (loja fechada)
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+          • +1 dia fixo + +1 dia rotativo (muda a cada semana)
+        </div>
+        <div id="escala-vendedoras" style="display:grid;gap:12px"></div>
+      </div>
+    </div>
   </section>
 
   <!-- RELATÓRIO -->
@@ -451,6 +488,41 @@ let documentosRH=[
   {id:nid(),funcId:_fid('Gustavo'),tipo:'Exame periódico',vencimento:'2026-08-15'},
 ];
 
+// Escala de trabalho (5x2)
+let escala={
+  // OPERAÇÃO: Domingo fixo + 1 dia fixo por pessoa
+  operacao:{
+    // funcId: 'seg' (dia fixo além do domingo)
+  },
+  // VENDEDORAS: Domingo fixo + 1 dia fixo + 1 dia rotativo
+  vendedoras:{
+    // funcId: {
+    //   folga_fixa: 'seg', (além do domingo)
+    //   rotacao_inicial: 'ter', (dia inicial da rotação)
+    //   semana_atual: 1
+    // }
+  }
+};
+
+// Inicializar com valores padrão
+funcionarios.forEach(f=>{
+  if(f.funcao&&f.funcao.includes('ntregador')){
+    // Operação: domingo fixo + 1 dia fixo
+    if(!escala.operacao[f.id]){
+      escala.operacao[f.id]='seg'; // padrão: segunda
+    }
+  }else if(f.vinculo==='CLT'&&f.funcao.includes('endedora')){
+    // Vendedora: domingo fixo + 1 dia fixo + 1 dia rotativo
+    if(!escala.vendedoras[f.id]){
+      escala.vendedoras[f.id]={
+        folga_fixa:'seg',
+        rotacao_inicial:'ter',
+        semana_atual:1
+      };
+    }
+  }
+});
+
 /* ===== FIREBASE FIRESTORE SYNC ===== */
 async function loadFromFirestore(){
   try{
@@ -487,6 +559,12 @@ async function saveBancoDelToFirestore(id){
   try{
     await db.collection('bancoHoras').doc(id).delete();
   }catch(e){console.error('Erro ao deletar banco:',e);}
+}
+
+async function saveLancamentosToFirestore(){
+  try{
+    await db.collection('lancamentos').doc('_data').set({items:lancamentos,updated:new Date()});
+  }catch(e){console.error('Erro ao salvar lançamentos:',e);}
 }
 
 async function saveDocToFirestore(item){
@@ -778,7 +856,7 @@ function renderCalendar(){
     } else {
       const lancs=lancsNoDia(dISO);
       if(lancs.some(x=>x.l.tipo==='ferias'))c.classList.add('ferias');
-      else if(lancs.some(x=>x.l.tipo==='folga'))c.classList.add('folga');
+      else if(lancs.some(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t)))c.classList.add(lancs[0].l.tipo);
       else if(aniversNoDia(dISO).length)c.classList.add('aniv');
     }
     
@@ -790,7 +868,15 @@ function renderCalendar(){
       const match=!calendarFilter||f.nome.toLowerCase().includes(calendarFilter.toLowerCase());
       if(match){
         ausencias++;
-        chips.push(`<div class="chip ${l.tipo}" data-lanc="${l.id}"><span class="nm">${f.nome}</span><span class="tg">${l.tipo==='ferias'?'FÉRIAS':'FOLGA'}</span></div>`);
+        let label='';
+        if(l.tipo==='ferias')label='FÉRIAS';
+        else if(l.tipo==='folga_aniversario')label='ANIVERSÁRIO';
+        else if(l.tipo==='folga_especial')label='FOLGA ESPECIAL';
+        else if(l.tipo==='atestado')label='ATESTADO';
+        let chipClass=l.tipo;
+        if(l.tipo==='folga_aniversario')chipClass='aniv';
+        else if(l.tipo==='folga_especial')chipClass='esp';
+        chips.push(`<div class="chip ${chipClass}" data-lanc="${l.id}"><span class="nm">${f.nome}</span><span class="tg">${label}</span></div>`);
       }
     });
     aniversNoDia(dISO).forEach(f=>{
@@ -824,7 +910,12 @@ function renderYear(){
       const e=document.createElement('div');e.className='minicell';e.textContent=day;
       const ls=lancsNoDia(dISO);
       if(ls.some(x=>x.l.tipo==='ferias'))e.classList.add('ferias');
-      else if(ls.some(x=>x.l.tipo==='folga'))e.classList.add('folga');
+      else if(ls.some(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t))){
+        const tipo=ls.find(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t)).l.tipo;
+        if(tipo==='folga_aniversario')e.classList.add('aniv');
+        else if(tipo==='folga_especial')e.classList.add('especial');
+        else if(tipo==='atestado')e.classList.add('atestado');
+      }
       else if(aniversNoDia(dISO).length)e.classList.add('aniv');
       e.title=dISO;
       e.addEventListener('click',()=>{
@@ -1264,11 +1355,13 @@ function drawLancamento(){
     <h2>${lancState.editId?'Editar lançamento':'Lançar férias / folga'}</h2>
     <div class="sub">Escolha a pessoa, o tipo e o período.</div>
     <div class="mbody">
-      <div class="field"><label>Funcionário</label><select id="f-func">${opts}</select></div>
+      <div class="field"><label>Funcionário</label><select id="f-func" ${lancState.editId?'disabled':''} >${opts}</select></div>
       <div class="field"><label>Tipo</label>
-        <div class="typepick">
-          <button id="t-fer" class="${lancState.tipo==='ferias'?'sel ferias':''}">Férias</button>
-          <button id="t-fol" class="${lancState.tipo==='folga'?'sel folga':''}">Folga</button>
+        <div class="typepick" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+          <button id="t-fer" class="${lancState.tipo==='ferias'?'sel ferias':''}">📅 Férias</button>
+          <button id="t-fol-aniv" class="${lancState.tipo==='folga_aniversario'?'sel folga':''}">🎂 Folga Aniversário</button>
+          <button id="t-fol-esp" class="${lancState.tipo==='folga_especial'?'sel folga':''}">⚙️ Folga Especial</button>
+          <button id="t-atest" class="${lancState.tipo==='atestado'?'sel atestado':''}">🏥 Atestado Médico</button>
         </div>
       </div>
       <div class="two">
@@ -1283,15 +1376,27 @@ function drawLancamento(){
       <button class="ghost" id="f-cancel">Cancelar</button>
       ${lancState.editId?'<button class="ghost" id="f-wa">WhatsApp</button>':''}
       ${lancState.editId&&lancState.tipo==='ferias'?'<button class="ghost" id="f-aviso">Aviso</button><button class="ghost" id="f-recibo">Recibo</button>':''}
+      ${lancState.editId?'<button class="ghost" id="f-relatorio">📋 Relatório</button>':''}
       <button class="primary" id="f-save">Salvar</button>
     </div>`;
   const fim=document.getElementById('fim-wrap');
   const abonoW=document.getElementById('abono-wrap');
   function syncType(){
-    fim.style.display=lancState.tipo==='folga'?'none':'';
-    abonoW.style.display=lancState.tipo==='folga'?'none':'';
+    // Mostrar/esconder campos conforme tipo
+    const isFer=lancState.tipo==='ferias';
+    const isAtest=lancState.tipo==='atestado';
+    const isFolga=['folga_aniversario','folga_especial'].includes(lancState.tipo);
+    
+    // Férias e Atestado mostram campo "fim", folgas não
+    fim.style.display=(isFer||isAtest)?'':'none';
+    // Apenas Férias mostra abono
+    abonoW.style.display=isFer?'':'none';
+    
+    // Atualizar classe dos botões
     document.getElementById('t-fer').className=lancState.tipo==='ferias'?'sel ferias':'';
-    document.getElementById('t-fol').className=lancState.tipo==='folga'?'sel folga':'';
+    document.getElementById('t-fol-aniv').className=lancState.tipo==='folga_aniversario'?'sel folga':'';
+    document.getElementById('t-fol-esp').className=lancState.tipo==='folga_especial'?'sel folga':'';
+    document.getElementById('t-atest').className=lancState.tipo==='atestado'?'sel atestado':'';
     updateInfo();
   }
   function updateInfo(){
@@ -1317,13 +1422,21 @@ function drawLancamento(){
           info.innerHTML+=`<div style="margin-top:8px;padding:8px;background:#e0f2fe;border-radius:6px;font-size:12px;color:#0369a1;border-left:3px solid #0284c7">✓ Padrão válido: ${todas.sort((a,b)=>b-a).join('+')} dias${ab>0?' + '+ab+' abono':''}.</div>`;
         }
       }
-    }else if(lancState.tipo==='folga'){
-      const sb=isSabadoFolga(ini);
-      info.textContent=sb?`Folga avulsa. ${ini} é um ${sb.nome.toLowerCase()} — gera crédito no banco.`:'Folga avulsa (1 dia).';
+    }else if(lancState.tipo==='folga_aniversario'){
+      info.textContent=`Folga de aniversário em ${ini}.`;
+    }else if(lancState.tipo==='folga_especial'){
+      info.textContent=`Folga especial em ${ini}.`;
+    }else if(lancState.tipo==='atestado'&&ini&&f&&parse(f)>=parse(ini)){
+      const dias=daysBetween(ini,f);
+      info.textContent=`Atestado médico por ${dias} dia(s) (${ini} a ${f}).`;
+    }else if(lancState.tipo==='atestado'&&ini){
+      info.textContent=`Atestado médico em ${ini}.`;
     }else info.textContent='';
   }
   document.getElementById('t-fer').onclick=()=>{lancState.tipo='ferias';syncType();};
-  document.getElementById('t-fol').onclick=()=>{lancState.tipo='folga';syncType();};
+  document.getElementById('t-fol-aniv').onclick=()=>{lancState.tipo='folga_aniversario';syncType();};
+  document.getElementById('t-fol-esp').onclick=()=>{lancState.tipo='folga_especial';syncType();};
+  document.getElementById('t-atest').onclick=()=>{lancState.tipo='atestado';syncType();};
   document.getElementById('f-ini').oninput=updateInfo;
   document.getElementById('f-fim').oninput=updateInfo;
   document.getElementById('f-abono').oninput=updateInfo;
@@ -1340,8 +1453,46 @@ function drawLancamento(){
   if(document.getElementById('f-recibo'))document.getElementById('f-recibo').onclick=()=>{
     openPrint(buildRecibo(document.getElementById('f-func').value,document.getElementById('f-ini').value,document.getElementById('f-fim').value));
   };
+  if(document.getElementById('f-relatorio'))document.getElementById('f-relatorio').onclick=()=>{
+    const funcId=document.getElementById('f-func').value;
+    const f=byId(funcId);
+    const tipo=lancState.tipo;
+    const ini=document.getElementById('f-ini').value;
+    const fimV=tipo==='folga'?ini:document.getElementById('f-fim').value;
+    const dias=tipo==='folga'?1:daysBetween(ini,fimV);
+    const html=`
+      <div style="font-family:Arial;width:600px;margin:20px auto;padding:20px;border:1px solid #ccc;background:#fff">
+        <div style="text-align:center;border-bottom:2px solid #353d28;padding-bottom:16px;margin-bottom:20px">
+          <div style="font-size:20px;font-weight:bold;color:#353d28">LORETTO SCARPA</div>
+          <div style="font-size:12px;color:#666">CNPJ: 25.066.858/0001-80</div>
+          <div style="font-size:12px;color:#666;margin-top:4px">Relatório de ${tipo==='ferias'?'Férias':'Folga'}</div>
+        </div>
+        <div style="margin-bottom:20px">
+          <div style="margin-bottom:12px"><strong>Funcionário:</strong> ${f?f.nome:''}</div>
+          <div style="margin-bottom:12px"><strong>Função:</strong> ${f?f.funcao:''}</div>
+          <div style="margin-bottom:12px"><strong>CPF:</strong> ${f?f.cpf||'—':''}</div>
+        </div>
+        <div style="margin-bottom:20px;padding:12px;background:#f0f0f0;border-radius:6px">
+          <div style="margin-bottom:8px"><strong>${tipo==='ferias'?'Período de Férias':'Data de Folga'}:</strong></div>
+          <div style="font-size:14px"><strong>${ini}</strong> ${tipo==='ferias'?'a <strong>'+fimV+'</strong>':''}</div>
+          <div style="margin-top:8px;color:#666">Total: <strong>${dias} dia(s)</strong></div>
+        </div>
+        <div style="margin-bottom:20px;padding:12px;background:#fff3cd;border-radius:6px">
+          <strong style="color:#856404">⚠ Aviso ao Funcionário:</strong>
+          <div style="font-size:12px;margin-top:8px;color:#856404">
+            Seu ${tipo==='ferias'?'período de férias':'dia de folga'} foi ${lancState.editId?'atualizado':'registrado'}.
+            ${tipo==='ferias'?'Você terá '+dias+' dia(s) de afastamento da empresa.':'Sua folga será creditada no banco de horas.'}
+          </div>
+        </div>
+        <div style="text-align:center;border-top:1px solid #ddd;padding-top:16px;margin-top:20px;font-size:12px;color:#666">
+          <div>Documento gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+        </div>
+      </div>
+    `;
+    openPrint(html);
+  };
   if(document.getElementById('f-del'))document.getElementById('f-del').onclick=()=>{
-    lancamentos=lancamentos.filter(x=>x.id!==lancState.editId);closeModal();refreshAll();
+    lancamentos=lancamentos.filter(x=>x.id!==lancState.editId);saveLancamentosToFirestore();closeModal();refreshAll();
   };
   document.getElementById('f-save').onclick=()=>{
     const funcId=document.getElementById('f-func').value;
@@ -1364,6 +1515,7 @@ function drawLancamento(){
     }else{
       lancamentos.push({id:nid(),funcId,tipo,inicio:ini,fim:fimV,abono,obs:''});
     }
+    saveLancamentosToFirestore();
     closeModal();refreshAll();
   };
   syncType();
@@ -1868,9 +2020,180 @@ function deleteDoc(id){
   }
 }
 
+function renderEscala(){
+  const dias=['seg','ter','qua','qui','sex','sab','dom'];
+  const nomesDias=['Seg','Ter','Qua','Qui','Sex','Sab','Dom'];
+  
+  // ===== OPERAÇÃO =====
+  const operacaoHtml=funcionarios
+    .filter(f=>f.funcao&&f.funcao.includes('ntregador')&&isAtivo(f))
+    .map(f=>{
+      const diaFixo=escala.operacao[f.id]||'seg';
+      return `
+      <div style="padding:14px;background:var(--cream);border-radius:10px;display:flex;gap:12px;align-items:center">
+        <div style="font-weight:600;flex:1">${f.nome}</div>
+        <div style="display:flex;gap:6px">
+          ${dias.map((dia,idx)=>{
+            let isFolga=false;
+            if(dia==='dom')isFolga=true; // Domingo sempre
+            else if(dia===diaFixo)isFolga=true; // Dia fixo
+            
+            return `
+            <span style="padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;${isFolga?'background:var(--ferias-bg);color:var(--ferias)':'background:var(--ok);color:white'}">
+              ${nomesDias[idx]}
+            </span>`;
+          }).join('')}
+        </div>
+        <button class="ghost" style="padding:6px 12px;font-size:12px" onclick="editOperacao('${f.id}')">✏️</button>
+      </div>
+      `;
+    }).join('');
+  
+  document.getElementById('escala-operacao').innerHTML=operacaoHtml||'<div style="color:var(--muted)">Nenhum operador.</div>';
+  
+  // ===== VENDEDORAS =====
+  const vendHtml=funcionarios
+    .filter(f=>f.vinculo==='CLT'&&f.funcao.includes('endedora')&&isAtivo(f))
+    .map((f,idx)=>{
+      const config=escala.vendedoras[f.id]||{folga_fixa:'seg',rotacao_inicial:'ter',semana_atual:1};
+      const diaRotativoHoje=calcularDiaRotativo(config,dias);
+      return `
+      <div style="padding:14px;background:var(--cream);border-radius:10px">
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+          <div style="font-weight:600;flex:1">${f.nome}</div>
+          <button class="ghost" style="padding:6px 12px;font-size:12px" onclick="editVendedora('${f.id}')">✏️ Editar</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:11px">
+          ${dias.map(dia=>{
+            let tipo='';let color='var(--ok)';let text='white';
+            if(dia==='dom'){tipo='Domingo (FIXO)';color='var(--ferias-bg)';text='var(--ferias)';}
+            else if(dia===config.folga_fixa){tipo='Folga Fixa';color='var(--folga-bg)';text='var(--folga)';}
+            else if(dia===diaRotativoHoje){tipo='Folga Rotativa';color='var(--aniv-bg)';text='var(--aniv)';}
+            
+            return `
+            <div style="padding:8px;border-radius:6px;background:${color};color:${text};text-align:center;font-weight:600">
+              <div>${nomesDias[dias.indexOf(dia)]}</div>
+              <div style="font-size:9px;opacity:0.8;margin-top:2px">${tipo||'Trabalha'}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+      `;
+    }).join('');
+  
+  document.getElementById('escala-vendedoras').innerHTML=vendHtml||'<div style="color:var(--muted)">Nenhuma vendedora.</div>';
+}
+
+function calcularDiaRotativo(config,dias){
+  // Calcula qual dia é a folga rotativa esta semana
+  const idxInicial=dias.indexOf(config.rotacao_inicial||'ter');
+  const offset=(config.semana_atual-1)%4;
+  const idx=(idxInicial+offset)%7;
+  return dias[idx];
+}
+
+function editOperacao(funcId){
+  const f=byId(funcId);
+  const dias=['seg','ter','qua','qui','sex','sab'];
+  const nomesDias=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const diaFixo=escala.operacao[f.id]||'seg';
+  
+  const html=`
+    <div class="modal-overlay">
+      <div class="modal" style="max-width:500px">
+        <h2>${f.nome} - Folgas</h2>
+        <div style="margin:20px 0;padding:12px;background:#f0f4e8;border-radius:8px;font-size:12px">
+          <strong>✓ Domingo:</strong> Sempre folga (loja fechada)<br>
+          <strong>+1 dia fixo:</strong> Escolha abaixo
+        </div>
+        
+        <div style="margin:20px 0">
+          <label style="display:block;font-weight:600;margin-bottom:8px">Dia Fixo Extra</label>
+          <select id="dia-fixo" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px">
+            ${dias.map(dia=>`<option value="${dia}" ${diaFixo===dia?'selected':''}>${nomesDias[dias.indexOf(dia)]}</option>`).join('')}
+          </select>
+        </div>
+        
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="ghost" onclick="document.querySelector('.modal-overlay').remove()">Cancelar</button>
+          <button class="primary" id="salvar-op">Salvar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend',html);
+  
+  document.getElementById('salvar-op').onclick=()=>{
+    escala.operacao[funcId]=document.getElementById('dia-fixo').value;
+    document.querySelector('.modal-overlay').remove();
+    renderEscala();
+  };
+}
+
+function editVendedora(funcId){
+  const f=byId(funcId);
+  const dias=['seg','ter','qua','qui','sex','sab'];
+  const nomesDias=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const config=escala.vendedoras[f.id]||{folga_fixa:'seg',rotacao_inicial:'ter',semana_atual:1};
+  
+  const html=`
+    <div class="modal-overlay">
+      <div class="modal" style="max-width:500px">
+        <h2>${f.nome} - Revezamento 5x2</h2>
+        <div style="margin:20px 0;padding:12px;background:#f0f4e8;border-radius:8px;font-size:12px">
+          <strong>Domingo:</strong> Sempre folga (loja fechada)<br>
+          <strong>+1 dia fixo:</strong> Mesma folga toda semana<br>
+          <strong>+1 dia rotativo:</strong> Muda a cada semana
+        </div>
+        
+        <div style="margin:20px 0">
+          <label style="display:block;font-weight:600;margin-bottom:8px">Dia Fixo Extra (além de domingo)</label>
+          <select id="folga-fixa" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px">
+            ${dias.map(dia=>`<option value="${dia}" ${config.folga_fixa===dia?'selected':''}>${nomesDias[dias.indexOf(dia)]}</option>`).join('')}
+          </select>
+        </div>
+        
+        <div style="margin:20px 0">
+          <label style="display:block;font-weight:600;margin-bottom:8px">Dia Inicial da Rotação</label>
+          <select id="rot-inicial" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px">
+            ${dias.map(dia=>`<option value="${dia}" ${config.rotacao_inicial===dia?'selected':''}>${nomesDias[dias.indexOf(dia)]}</option>`).join('')}
+          </select>
+        </div>
+        
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="ghost" onclick="document.querySelector('.modal-overlay').remove()">Cancelar</button>
+          <button class="primary" id="salvar-vend">Salvar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend',html);
+  
+  document.getElementById('salvar-vend').onclick=()=>{
+    escala.vendedoras[funcId]={
+      folga_fixa:document.getElementById('folga-fixa').value,
+      rotacao_inicial:document.getElementById('rot-inicial').value,
+      semana_atual:config.semana_atual
+    };
+    document.querySelector('.modal-overlay').remove();
+    renderEscala();
+  };
+}
+
+function avancarSemanaRotacao(){
+  // Avança a semana para todas as vendedoras (muda a folga rotativa)
+  Object.keys(escala.vendedoras).forEach(funcId=>{
+    escala.vendedoras[funcId].semana_atual=(escala.vendedoras[funcId].semana_atual||1)+1;
+  });
+  renderEscala();
+}
+
 function refreshAll(){renderCalendar();
   if(document.getElementById('view-alertas').classList.contains('active'))renderAlertas();
   if(document.getElementById('view-pessoas').classList.contains('active'))renderPeople();
+  if(document.getElementById('view-escala').classList.contains('active'))renderEscala();
   if(document.getElementById('view-relatorio').classList.contains('active'))renderReport();
   if(document.getElementById('view-banco').classList.contains('active'))renderBanco();
   if(document.getElementById('view-docs').classList.contains('active'))renderDocs();
