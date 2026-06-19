@@ -526,6 +526,13 @@ funcionarios.forEach(f=>{
 /* ===== FIREBASE FIRESTORE SYNC ===== */
 async function loadFromFirestore(){
   try{
+    // Carregar lançamentos
+    const lRes=await db.collection('lancamentos').doc('_data').get();
+    if(lRes.exists){
+      lancamentos=lRes.data().items||[];
+      console.log('✓ Lançamentos carregados:',lancamentos.length);
+    }
+    
     const bRes=await db.collection('bancoHoras').get();
     bancoManual=[];
     bRes.forEach(doc=>{
@@ -783,7 +790,7 @@ function renderAusenciasPanel(y,m){
   const fim=new Date(y,m+1,0);
   
   const ausencias=[];
-  lancamentos.filter(l=>['ferias','folga'].includes(l.tipo)).forEach(l=>{
+  lancamentos.filter(l=>['ferias','folga_aniversario','folga_especial','atestado'].includes(l.tipo)).forEach(l=>{
     const lInicio=parse(l.inicio), lFim=parse(l.fim);
     if((lInicio<=fim && lFim>=inicio)){
       const f=byId(l.funcId);
@@ -796,31 +803,141 @@ function renderAusenciasPanel(y,m){
     return;
   }
   
-  const grouped={ferias:[],folga:[]};
-  ausencias.forEach(a=>grouped[a.tipo].push(a));
+  // Agrupar por tipo de lançamento
+  const grouped={ferias:[],folgas:[],atestados:[]};
+  ausencias.forEach(a=>{
+    if(a.tipo==='ferias')grouped.ferias.push(a);
+    else if(['folga_aniversario','folga_especial'].includes(a.tipo))grouped.folgas.push(a);
+    else if(a.tipo==='atestado')grouped.atestados.push(a);
+  });
   
-  let html=`<h3 style="font-size:14px;font-weight:600;margin-bottom:10px;color:var(--ink)">📅 Ausências do mês</h3>`;
+  let html=`<h3 style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--ink)">📅 Ausências do mês</h3>`;
   
+  // FÉRIAS
   if(grouped.ferias.length){
-    html+=`<div style="margin-bottom:10px">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">🌿 Férias</div>
-      ${grouped.ferias.map(a=>`
-        <div style="font-size:13px;margin-bottom:4px;color:var(--ink)">
-          <strong>${a.f.nome}</strong> — ${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} <span style="color:var(--muted)">(${daysBetween(a.l.inicio,a.l.fim)} dias)</span>
+    const vend=grouped.ferias.filter(a=>a.f.funcao.includes('endedora'));
+    const oper=grouped.ferias.filter(a=>a.f.funcao.includes('ntregador'));
+    
+    html+=`<div style="margin-bottom:16px">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">🌿 Férias</div>`;
+    
+    if(vend.length){
+      html+=`<div style="margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">👥 Vendedoras</div>`;
+      html+=vend.map(a=>`
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--olive);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
+            ${a.f.nome.charAt(0).toUpperCase()}
+          </div>
+          <div style="flex:1;font-size:12px">
+            <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
+            <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} (${daysBetween(a.l.inicio,a.l.fim)} dias)</div>
+          </div>
         </div>
-      `).join('')}
-    </div>`;
+      `).join('');
+    }
+    
+    if(oper.length){
+      html+=`<div style="margin-top:8px;margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">🚚 Operação</div>`;
+      html+=oper.map(a=>`
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--ok);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
+            ${a.f.nome.charAt(0).toUpperCase()}
+          </div>
+          <div style="flex:1;font-size:12px">
+            <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
+            <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} (${daysBetween(a.l.inicio,a.l.fim)} dias)</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    html+=`</div>`;
   }
   
-  if(grouped.folga.length){
-    html+=`<div>
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">💜 Folgas</div>
-      ${grouped.folga.map(a=>`
-        <div style="font-size:13px;margin-bottom:4px;color:var(--ink)">
-          <strong>${a.f.nome}</strong> — ${fmtBR(a.l.inicio)}
+  // FOLGAS
+  if(grouped.folgas.length){
+    const vend=grouped.folgas.filter(a=>a.f.funcao.includes('endedora'));
+    const oper=grouped.folgas.filter(a=>a.f.funcao.includes('ntregador'));
+    
+    html+=`<div style="margin-bottom:16px">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">💜 Folgas</div>`;
+    
+    if(vend.length){
+      html+=`<div style="margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">👥 Vendedoras</div>`;
+      html+=vend.map(a=>{
+        const label=a.tipo==='folga_aniversario'?'Aniversário':'Especial';
+        return `
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--aniv);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
+            ${a.f.nome.charAt(0).toUpperCase()}
+          </div>
+          <div style="flex:1;font-size:12px">
+            <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
+            <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} · ${label}</div>
+          </div>
         </div>
-      `).join('')}
-    </div>`;
+      `;}).join('');
+    }
+    
+    if(oper.length){
+      html+=`<div style="margin-top:8px;margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">🚚 Operação</div>`;
+      html+=oper.map(a=>{
+        const label=a.tipo==='folga_aniversario'?'Aniversário':'Especial';
+        return `
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--ok);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
+            ${a.f.nome.charAt(0).toUpperCase()}
+          </div>
+          <div style="flex:1;font-size:12px">
+            <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
+            <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} · ${label}</div>
+          </div>
+        </div>
+      `;}).join('');
+    }
+    
+    html+=`</div>`;
+  }
+  
+  // ATESTADOS
+  if(grouped.atestados.length){
+    const vend=grouped.atestados.filter(a=>a.f.funcao.includes('endedora'));
+    const oper=grouped.atestados.filter(a=>a.f.funcao.includes('ntregador'));
+    
+    html+=`<div>
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">🏥 Atestados</div>`;
+    
+    if(vend.length){
+      html+=`<div style="margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">👥 Vendedoras</div>`;
+      html+=vend.map(a=>`
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--atestado);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
+            ${a.f.nome.charAt(0).toUpperCase()}
+          </div>
+          <div style="flex:1;font-size:12px">
+            <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
+            <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} (${daysBetween(a.l.inicio,a.l.fim)} dias)</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    if(oper.length){
+      html+=`<div style="margin-top:8px;margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:600">🚚 Operação</div>`;
+      html+=oper.map(a=>`
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--bad);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
+            ${a.f.nome.charAt(0).toUpperCase()}
+          </div>
+          <div style="flex:1;font-size:12px">
+            <div style="font-weight:600;color:var(--ink)">${a.f.nome}</div>
+            <div style="color:var(--muted);font-size:11px">${fmtBR(a.l.inicio)} a ${fmtBR(a.l.fim)} (${daysBetween(a.l.inicio,a.l.fim)} dias)</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    html+=`</div>`;
   }
   
   wrap.innerHTML=html;
@@ -850,15 +967,15 @@ function renderCalendar(){
     if(dObj.getDay()===0)c.classList.add('sun');
     if(dISO===HOJE_ISO)c.classList.add('today');
     
-    // Adicionar cor baseado no evento prioritário
-    if(isSabadoFolga(dISO)){
-      c.classList.add('especial');
-    } else {
       const lancs=lancsNoDia(dISO);
       if(lancs.some(x=>x.l.tipo==='ferias'))c.classList.add('ferias');
-      else if(lancs.some(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t)))c.classList.add(lancs[0].l.tipo);
+      else if(lancs.some(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t))){
+        const tipo=lancs.find(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t)).l.tipo;
+        if(tipo==='folga_aniversario')c.classList.add('aniv');
+        else if(tipo==='folga_especial')c.classList.add('especial');
+        else if(tipo==='atestado')c.classList.add('atestado');
+      }
       else if(aniversNoDia(dISO).length)c.classList.add('aniv');
-    }
     
     let html=`<span class="daynum">${day}</span>`;
     if(isSabadoFolga(dISO))html+=`<span class="star" title="Sábado que gera folga">★</span>`;
@@ -1473,17 +1590,18 @@ function drawLancamento(){
           <div style="margin-bottom:12px"><strong>CPF:</strong> ${f?f.cpf||'—':''}</div>
         </div>
         <div style="margin-bottom:20px;padding:12px;background:#f0f0f0;border-radius:6px">
-          <div style="margin-bottom:8px"><strong>${tipo==='ferias'?'Período de Férias':'Data de Folga'}:</strong></div>
-          <div style="font-size:14px"><strong>${ini}</strong> ${tipo==='ferias'?'a <strong>'+fimV+'</strong>':''}</div>
+          <div style="margin-bottom:8px"><strong>${tipo==='ferias'?'Período de Férias':tipo==='atestado'?'Período de Afastamento':'Data de Folga'}:</strong></div>
+          <div style="font-size:14px"><strong>${ini}</strong> ${(tipo==='ferias'||tipo==='atestado')?'a <strong>'+fimV+'</strong>':''}</div>
           <div style="margin-top:8px;color:#666">Total: <strong>${dias} dia(s)</strong></div>
         </div>
+        ${tipo==='ferias'||tipo==='atestado'?`
         <div style="margin-bottom:20px;padding:12px;background:#fff3cd;border-radius:6px">
           <strong style="color:#856404">⚠ Aviso ao Funcionário:</strong>
           <div style="font-size:12px;margin-top:8px;color:#856404">
-            Seu ${tipo==='ferias'?'período de férias':'dia de folga'} foi ${lancState.editId?'atualizado':'registrado'}.
-            ${tipo==='ferias'?'Você terá '+dias+' dia(s) de afastamento da empresa.':'Sua folga será creditada no banco de horas.'}
+            Você terá ${dias} dia(s) de ${tipo==='ferias'?'férias':'afastamento'} da empresa.
           </div>
         </div>
+        `:''}
         <div style="text-align:center;border-top:1px solid #ddd;padding-top:16px;margin-top:20px;font-size:12px;color:#666">
           <div>Documento gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
         </div>
