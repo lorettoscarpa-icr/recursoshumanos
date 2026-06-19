@@ -690,7 +690,7 @@ function bancoInfo(func){
   });
   // folgas gozadas (cada dia = -1)
   let gozadas=0;
-  lancamentos.filter(l=>l.funcId===func.id&&l.tipo==='folga').forEach(l=>{gozadas+=daysBetween(l.inicio,l.fim);});
+  lancamentos.filter(l=>l.funcId===func.id&&['folga_aniversario','folga_especial'].includes(l.tipo)).forEach(l=>{gozadas+=daysBetween(l.inicio,l.fim);});
   // saldo: créditos positivos ainda no prazo (ou sem validade) + débitos manuais; menos folgas gozadas
   let disponivel=0, vencidos=0;
   creditos.forEach(c=>{
@@ -1444,7 +1444,7 @@ function drawLancamento(){
   if(document.getElementById('f-wa'))document.getElementById('f-wa').onclick=()=>{
     const funcId=document.getElementById('f-func').value;
     const ini=document.getElementById('f-ini').value;
-    const fimV=lancState.tipo==='folga'?ini:document.getElementById('f-fim').value;
+    const fimV=['folga_aniversario','folga_especial'].includes(lancState.tipo)?ini:document.getElementById('f-fim').value;
     openWhats(funcId,lancState.tipo,ini,fimV);
   };
   if(document.getElementById('f-aviso'))document.getElementById('f-aviso').onclick=()=>{
@@ -1458,8 +1458,8 @@ function drawLancamento(){
     const f=byId(funcId);
     const tipo=lancState.tipo;
     const ini=document.getElementById('f-ini').value;
-    const fimV=tipo==='folga'?ini:document.getElementById('f-fim').value;
-    const dias=tipo==='folga'?1:daysBetween(ini,fimV);
+    const fimV=['folga_aniversario','folga_especial'].includes(tipo)?ini:document.getElementById('f-fim').value;
+    const dias=tipo==='ferias'?daysBetween(ini,fimV):1;
     const html=`
       <div style="font-family:Arial;width:600px;margin:20px auto;padding:20px;border:1px solid #ccc;background:#fff">
         <div style="text-align:center;border-bottom:2px solid #353d28;padding-bottom:16px;margin-bottom:20px">
@@ -1498,7 +1498,7 @@ function drawLancamento(){
     const funcId=document.getElementById('f-func').value;
     const tipo=lancState.tipo;
     const ini=document.getElementById('f-ini').value;
-    const fimV=tipo==='folga'?ini:document.getElementById('f-fim').value;
+    const fimV=['folga_aniversario','folga_especial'].includes(tipo)?ini:document.getElementById('f-fim').value;
     const abono=tipo==='ferias'?Math.max(0,Math.min(10,parseInt(document.getElementById('f-abono').value||0))):0;
     if(!ini||!fimV||parse(fimV)<parse(ini)){alert('Verifique as datas.');return;}
     const fObj=byId(funcId);
@@ -1588,11 +1588,12 @@ function fillTpl(tpl,func,tipo,inicio,fim){
 }
 function openWhats(funcId,tipo,inicio,fim){
   const f=byId(funcId);if(!f)return;
-  const msg=fillTpl(tipo==='ferias'?templates.ferias:templates.folga,f,tipo,inicio,fim);
+  const isFeria=tipo==='ferias';
+  const msg=fillTpl(isFeria?templates.ferias:templates.folga,f,tipo,inicio,fim);
   const digits=waDigits(f.telefone);
   modal.innerHTML=`
     <h2>Mensagem para ${f.nome}</h2>
-    <div class="sub">${tipo==='ferias'?'Férias':'Folga'} · ${fmtBR(inicio)}${tipo==='ferias'?' a '+fmtBR(fim):''}${digits?'':' · <span style="color:var(--bad)">sem número cadastrado</span>'}</div>
+    <div class="sub">${isFeria?'Férias':'Folga'} · ${fmtBR(inicio)}${isFeria?' a '+fmtBR(fim):''}${digits?'':' · <span style="color:var(--bad)">sem número cadastrado</span>'}</div>
     <div class="mbody">
       <div class="field"><label>Texto (pode ajustar antes de enviar)</label>
         <textarea id="wa-msg" rows="9">${msg.replace(/</g,'&lt;')}</textarea></div>
@@ -1640,12 +1641,12 @@ function renderAlertas(){
 
   // --- Folgas ---
   const fol=[];
-  lancamentos.filter(l=>l.tipo==='folga'&&inMonth(l.inicio)).forEach(l=>{
+  lancamentos.filter(l=>['folga_aniversario','folga_especial'].includes(l.tipo)&&inMonth(l.inicio)).forEach(l=>{
     const f=byId(l.funcId);if(f)fol.push({f,l});
   });
   if(fol.length)groups.push({titulo:'Folgas',icon:'💜',cls:'folga',items:fol.map(x=>({
     nome:x.f.nome,sub:`Folga · ${fmtBR(x.l.inicio)}`,
-    send:{funcId:x.f.id,tipo:'folga',inicio:x.l.inicio,fim:x.l.inicio},phone:x.f.telefone
+    send:{funcId:x.f.id,tipo:x.l.tipo,inicio:x.l.inicio,fim:x.l.inicio},phone:x.f.telefone
   }))});
 
   // --- Aniversários ---
