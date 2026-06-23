@@ -12,13 +12,13 @@
     --olive:#353d28; --olive-d:#2a3120; --olive-l:#46502f;
     --gold:#dcbd60; --gold-d:#d4b85e; --gold-soft:#e7d49a;
     --cream:#f6f4ee; --paper:#ffffff;
-    --ferias:#b14a3f; --ferias-bg:#f6e4e0;
+    --ferias:#2f5b9e; --ferias-bg:#e3ecf8;
     --folga:#6a5b93; --folga-bg:#e9e5f2;
     --aniv:#c69a2e; --aniv-bg:#f8eecb;
     --especial:#7d8a4f; --especial-bg:#e8ede0;
     --atestado:#c84c3a; --atestado-bg:#fce8e5;
     --ink:#2b2b25; --muted:#8c8779; --line:#e6e1d4;
-    --ok:#5f7045; --warn:#c08a2d; --bad:#b14a3f;
+    --ok:#5f7045; --warn:#c08a2d; --bad:#b14a3f; --bad-bg:#f6e4e0;
     --shadow:0 8px 30px rgba(53,61,40,.10);
   }
   *{box-sizing:border-box}
@@ -140,7 +140,7 @@
   .v.neg{color:var(--bad)} .v.pos{color:var(--ok)}
   .alert{margin-top:10px;font-size:12px;border-radius:8px;padding:7px 10px;display:flex;gap:7px;align-items:flex-start}
   .alert.warn{background:#fbf2da;color:#8a6a16}
-  .alert.bad{background:var(--ferias-bg);color:var(--ferias)}
+  .alert.bad{background:var(--bad-bg);color:var(--bad)}
   .pcard .actions{display:flex;gap:10px;padding:12px 20px 18px}
   .pcard .actions button{flex:1;font-size:12.5px;padding:8px;border-radius:8px;border:1px solid var(--line);font-weight:600;color:var(--olive);background:var(--cream)}
   .pcard .actions button:hover{border-color:var(--gold)}
@@ -157,8 +157,11 @@
   .pill.ferias{background:var(--ferias-bg);color:var(--ferias)}
   .pill.folga{background:var(--folga-bg);color:var(--folga)}
   .pill.aniv{background:var(--aniv-bg);color:var(--aniv)}
+  .pill.atestado{background:var(--atestado-bg);color:var(--atestado)}
+  tr.rep-row{cursor:pointer}
+  tr.rep-row:hover td{background:#f3f0e6}
   .pill.prazo-ok{background:#e7ecdd;color:var(--ok)}
-  .pill.prazo-bad{background:var(--ferias-bg);color:var(--ferias)}
+  .pill.prazo-bad{background:var(--bad-bg);color:var(--bad)}
   .report .foot{padding:14px 18px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line)}
   /* ---------- Modal ---------- */
   .scrim{position:fixed;inset:0;background:rgba(35,40,28,.45);backdrop-filter:blur(2px);z-index:60;
@@ -1476,10 +1479,15 @@ function renderReport(){
   rows.forEach(l=>{
     const f=byId(l.funcId);if(!f)return;
     const dias=daysBetween(l.inicio,l.fim);
-    html+=`<tr><td>${f.nome}</td><td><span class="pill ${l.tipo}">${l.tipo==='ferias'?'Férias':'Folga'}</span></td>
+    const tLabel=({ferias:'Férias',folga_aniversario:'Folga',folga_especial:'Folga',atestado:'Atestado'}[l.tipo]||'Folga');
+    const pillCls=l.tipo==='ferias'?'ferias':(l.tipo==='atestado'?'atestado':'folga');
+    html+=`<tr class="rep-row" data-lanc="${l.id}" title="Clique para editar ou excluir"><td>${f.nome}</td><td><span class="pill ${pillCls}">${tLabel}</span></td>
       <td class="num">${fmtBR(l.inicio)}</td><td class="num">${fmtBR(l.fim)}</td><td class="num">${dias}</td></tr>`;
   });
   html+=`</tbody>`;t.innerHTML=html;
+  t.querySelectorAll('tr.rep-row').forEach(tr=>tr.addEventListener('click',()=>{
+    const l=lancamentos.find(x=>x.id===tr.dataset.lanc);if(l)openEditLancamento(l);
+  }));
 }
 function reportText(){
   let s='LORETTO SCARPA — Relatório de férias e folgas\n('+repFilterLabel()+')\n\n';
@@ -1689,6 +1697,10 @@ function drawLancamento(){
     openPrint(html);
   };
   if(document.getElementById('f-del'))document.getElementById('f-del').onclick=()=>{
+    const l=lancamentos.find(x=>x.id===lancState.editId);
+    const tLabel=l?({ferias:'Férias',folga_aniversario:'Folga aniversário',folga_especial:'Folga especial',atestado:'Atestado'}[l.tipo]||l.tipo):'';
+    const fNome=l?(byId(l.funcId)?.nome||''):'';
+    if(!confirm(`Excluir este lançamento?\n\n${tLabel} — ${fNome}\n${l?fmtBR(l.inicio):''} a ${l?fmtBR(l.fim):''}\n\nEsta ação não pode ser desfeita.`))return;
     lancamentos=lancamentos.filter(x=>x.id!==lancState.editId);saveLancamentosToFirestore();closeModal();refreshAll();
   };
   document.getElementById('f-save').onclick=()=>{
