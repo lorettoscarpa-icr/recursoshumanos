@@ -1583,8 +1583,8 @@ function reportText(){
 /* ===== Documentos imprimíveis ===== */
 function openPrint(inner){document.getElementById('printArea').innerHTML=inner;window.print();}
 function docHead(titulo){
-  return `<div class="doc-head"><div class="mk">Loretto Scarpa</div><h1>Loretto Scarpa Calçados</h1>`+
-    `<div class="meta">CNPJ: __________________________ · Goiânia/GO</div></div><h2>${titulo}</h2>`;
+  return `<div class="doc-head"><div class="mk">Loretto Scarpa</div><h1>Loretto Scarpa LTDA</h1>`+
+    `<div class="meta">CNPJ: 25.066.858/0001-80 · Goiânia/GO</div></div><h2>${titulo}</h2>`;
 }
 function buildAviso(funcId,inicio,fim){
   const f=byId(funcId);if(!f)return '';
@@ -1602,7 +1602,7 @@ function buildRecibo(funcId,inicio,fim){
   const f=byId(funcId);if(!f)return '';
   const dias=daysBetween(inicio,fim);
   return `<div class="doc">${docHead('RECIBO DE FÉRIAS')}
-    <p>Eu, <b>${f.nome}</b>, portador(a) do CPF nº ____________________, ${f.funcao||''} da empresa Loretto Scarpa Calçados, declaro ter recebido a importância referente às minhas férias do período de <b>${fmtBR(inicio)}</b> a <b>${fmtBR(fim)}</b> (${dias} dias), conforme demonstrativo abaixo.</p>
+    <p>Eu, <b>${f.nome}</b>, portador(a) do CPF nº ____________________, ${f.funcao||''} da empresa Loretto Scarpa LTDA, declaro ter recebido a importância referente às minhas férias do período de <b>${fmtBR(inicio)}</b> a <b>${fmtBR(fim)}</b> (${dias} dias), conforme demonstrativo abaixo.</p>
     <table><thead><tr><th>Descrição</th><th>Valor (R$)</th></tr></thead><tbody>
       <tr><td>Remuneração de férias (${dias} dias)</td><td>________________</td></tr>
       <tr><td>Adicional de 1/3 constitucional</td><td>________________</td></tr>
