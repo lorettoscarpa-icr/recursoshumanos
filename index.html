@@ -160,6 +160,10 @@
   .pill.atestado{background:var(--atestado-bg);color:var(--atestado)}
   tr.rep-row{cursor:pointer}
   tr.rep-row:hover td{background:#f3f0e6}
+  .rep-acts{text-align:right;white-space:nowrap}
+  .rep-acts button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font-size:15px;cursor:pointer;margin-left:6px;line-height:1}
+  .rep-acts button:hover{background:#f0ede3}
+  .rep-acts .rep-del:hover{background:var(--bad-bg);border-color:var(--bad)}
   .pill.prazo-ok{background:#e7ecdd;color:var(--ok)}
   .pill.prazo-bad{background:var(--bad-bg);color:var(--bad)}
   .report .foot{padding:14px 18px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line)}
@@ -1049,7 +1053,7 @@ function renderCalendar(){
     if(dObj.getDay()===0)c.classList.add('sun');
     if(dISO===HOJE_ISO)c.classList.add('today');
     
-      const lancs=lancsNoDia(dISO);
+      const lancs=lancsNoDia(dISO).filter(({f})=>!calendarFilter||f.nome.toLowerCase().includes(calendarFilter.toLowerCase()));
       if(lancs.some(x=>x.l.tipo==='ferias'))c.classList.add('ferias');
       else if(lancs.some(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t))){
         const tipo=lancs.find(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t)).l.tipo;
@@ -1057,7 +1061,7 @@ function renderCalendar(){
         else if(tipo==='folga_especial')c.classList.add('especial');
         else if(tipo==='atestado')c.classList.add('atestado');
       }
-      else if(aniversNoDia(dISO).length)c.classList.add('aniv');
+      else if(aniversNoDia(dISO).filter(f=>!calendarFilter||f.nome.toLowerCase().includes(calendarFilter.toLowerCase())).length)c.classList.add('aniv');
     
     let html=`<span class="daynum">${day}</span>`;
     if(isSabadoFolga(dISO))html+=`<span class="star" title="Sábado que gera folga">★</span>`;
@@ -1474,19 +1478,31 @@ function renderReport(){
   populateRepPessoa();
   const t=document.getElementById('repTable');
   const rows=filteredLancs();
-  let html=`<thead><tr><th>Funcionário</th><th>Tipo</th><th>Início</th><th>Fim</th><th>Dias</th></tr></thead><tbody>`;
-  if(!rows.length)html+=`<tr><td colspan="5" style="color:var(--muted);padding:20px 14px">Nenhum lançamento neste filtro.</td></tr>`;
+  let html=`<thead><tr><th>Funcionário</th><th>Tipo</th><th>Início</th><th>Fim</th><th>Dias</th><th style="text-align:right">Ações</th></tr></thead><tbody>`;
+  if(!rows.length)html+=`<tr><td colspan="6" style="color:var(--muted);padding:20px 14px">Nenhum lançamento neste filtro.</td></tr>`;
   rows.forEach(l=>{
     const f=byId(l.funcId);if(!f)return;
     const dias=daysBetween(l.inicio,l.fim);
     const tLabel=({ferias:'Férias',folga_aniversario:'Folga',folga_especial:'Folga',atestado:'Atestado'}[l.tipo]||'Folga');
     const pillCls=l.tipo==='ferias'?'ferias':(l.tipo==='atestado'?'atestado':'folga');
-    html+=`<tr class="rep-row" data-lanc="${l.id}" title="Clique para editar ou excluir"><td>${f.nome}</td><td><span class="pill ${pillCls}">${tLabel}</span></td>
-      <td class="num">${fmtBR(l.inicio)}</td><td class="num">${fmtBR(l.fim)}</td><td class="num">${dias}</td></tr>`;
+    html+=`<tr class="rep-row" data-lanc="${l.id}" title="Clique para editar"><td>${f.nome}</td><td><span class="pill ${pillCls}">${tLabel}</span></td>
+      <td class="num">${fmtBR(l.inicio)}</td><td class="num">${fmtBR(l.fim)}</td><td class="num">${dias}</td>
+      <td class="rep-acts"><button class="rep-edit" data-lanc="${l.id}" title="Editar">✏️</button><button class="rep-del" data-lanc="${l.id}" title="Excluir">🗑️</button></td></tr>`;
   });
   html+=`</tbody>`;t.innerHTML=html;
   t.querySelectorAll('tr.rep-row').forEach(tr=>tr.addEventListener('click',()=>{
     const l=lancamentos.find(x=>x.id===tr.dataset.lanc);if(l)openEditLancamento(l);
+  }));
+  t.querySelectorAll('.rep-edit').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();const l=lancamentos.find(x=>x.id===b.dataset.lanc);if(l)openEditLancamento(l);
+  }));
+  t.querySelectorAll('.rep-del').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    const l=lancamentos.find(x=>x.id===b.dataset.lanc);if(!l)return;
+    const tLabel=({ferias:'Férias',folga_aniversario:'Folga aniversário',folga_especial:'Folga especial',atestado:'Atestado'}[l.tipo]||l.tipo);
+    const fNome=byId(l.funcId)?.nome||'';
+    if(!confirm(`Excluir este lançamento?\n\n${tLabel} — ${fNome}\n${fmtBR(l.inicio)} a ${fmtBR(l.fim)}\n\nEsta ação não pode ser desfeita.`))return;
+    lancamentos=lancamentos.filter(x=>x.id!==l.id);saveLancamentosToFirestore();refreshAll();
   }));
 }
 function reportText(){
