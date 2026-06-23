@@ -1590,7 +1590,7 @@ function drawLancamento(){
     <h2>${lancState.editId?'Editar lançamento':'Lançar férias / folga'}</h2>
     <div class="sub">Escolha a pessoa, o tipo e o período.</div>
     <div class="mbody">
-      <div class="field"><label>Funcionário</label><select id="f-func" ${lancState.editId?'disabled':''} >${opts}</select></div>
+      <div class="field"><label>Funcionário</label><select id="f-func">${opts}</select>${lancState.editId?'<div class="hint" style="margin-top:4px;font-size:11px">Pode trocar a pessoa se este lançamento estiver no nome errado.</div>':''}</div>
       <div class="field"><label>Tipo</label>
         <div class="typepick" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
           <button id="t-fer" class="${lancState.tipo==='ferias'?'sel ferias':''}">📅 Férias</button>
