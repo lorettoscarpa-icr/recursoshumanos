@@ -97,6 +97,20 @@
   .cell.especial{background:var(--especial);color:#fff}
   .cell.atestado{background:var(--atestado);color:#fff}
   .cell.ferias .chip, .cell.folga .chip, .cell.aniv .chip, .cell.especial .chip, .cell.atestado .chip{opacity:0.9;background:rgba(255,255,255,.2)!important;color:#fff!important;border:1px solid rgba(255,255,255,.4)}
+  /* ---------- Faixas coloridas por dia (Opção C) ---------- */
+  .cell.banded{padding:0;display:flex;flex-direction:column;overflow:hidden}
+  .cell.banded .daynum{padding:7px 8px 3px}
+  .bandwrap{flex:1;display:flex;flex-direction:column}
+  .band{flex:1;min-height:20px;padding:4px 8px;display:flex;align-items:center;gap:6px;line-height:1.15;cursor:pointer}
+  .band+.band{border-top:1px solid rgba(255,255,255,.65)}
+  .band .nm{font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .band .tg{font-size:8px;letter-spacing:.04em;opacity:.85;margin-left:auto;white-space:nowrap}
+  .band.ferias{background:var(--ferias-bg)} .band.ferias .nm,.band.ferias .tg{color:var(--ferias)}
+  .band.folga{background:var(--folga-bg)} .band.folga .nm,.band.folga .tg{color:var(--folga)}
+  .band.esp{background:var(--especial-bg)} .band.esp .nm,.band.esp .tg{color:var(--especial)}
+  .band.aniv{background:var(--aniv-bg)} .band.aniv .nm,.band.aniv .tg{color:var(--aniv)}
+  .band.atestado{background:var(--atestado-bg)} .band.atestado .nm,.band.atestado .tg{color:var(--atestado)}
+  .band:hover{filter:brightness(.95)}
   /* ---------- Year overview ---------- */
   .yeargrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
   .minimonth{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
@@ -1120,40 +1134,26 @@ function renderCalendar(){
     if(dObj.getDay()===0)c.classList.add('sun');
     if(dISO===HOJE_ISO)c.classList.add('today');
     
-      const lancs=lancsNoDia(dISO).filter(({f})=>!calendarFilter||f.nome.toLowerCase().includes(calendarFilter.toLowerCase()));
-      if(lancs.some(x=>x.l.tipo==='ferias'))c.classList.add('ferias');
-      else if(lancs.some(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t))){
-        const tipo=lancs.find(x=>['folga_aniversario','folga_especial','atestado'].some(t=>x.l.tipo===t)).l.tipo;
-        if(tipo==='folga_aniversario')c.classList.add('aniv');
-        else if(tipo==='folga_especial')c.classList.add('especial');
-        else if(tipo==='atestado')c.classList.add('atestado');
-      }
-      else if(aniversNoDia(dISO).filter(f=>!calendarFilter||f.nome.toLowerCase().includes(calendarFilter.toLowerCase())).length)c.classList.add('aniv');
-    
     let html=`<span class="daynum">${day}</span>`;
     if(isSabadoFolga(dISO))html+=`<span class="star" title="Sábado que gera folga">★</span>`;
-    const chips=[];
-    if(isSabadoFolga(dISO))chips.push('<div class="chip esp">Trabalho → +1 folga · vendedoras</div>');
+    const bands=[];
+    if(isSabadoFolga(dISO))bands.push('<div class="band esp"><span class="nm">+1 folga</span><span class="tg">VENDEDORAS</span></div>');
     lancsNoDia(dISO).forEach(({l,f})=>{
       const match=!calendarFilter||f.nome.toLowerCase().includes(calendarFilter.toLowerCase());
       if(match){
         ausencias++;
-        let label='';
-        if(l.tipo==='ferias')label='FÉRIAS';
-        else if(l.tipo==='folga_aniversario')label='ANIVERSÁRIO';
-        else if(l.tipo==='folga_especial')label='FOLGA ESPECIAL';
-        else if(l.tipo==='atestado')label='ATESTADO';
-        let chipClass=l.tipo;
-        if(l.tipo==='folga_aniversario')chipClass='aniv';
-        else if(l.tipo==='folga_especial')chipClass='esp';
-        chips.push(`<div class="chip ${chipClass}" data-lanc="${l.id}"><span class="nm">${f.nome}</span><span class="tg">${label}</span></div>`);
+        let label='FOLGA',cls='esp';
+        if(l.tipo==='ferias'){label='FÉRIAS';cls='ferias';}
+        else if(l.tipo==='folga_aniversario'){label='ANIVERSÁRIO';cls='aniv';}
+        else if(l.tipo==='atestado'){label='ATESTADO';cls='atestado';}
+        bands.push(`<div class="band ${cls}" data-lanc="${l.id}"><span class="nm">${f.nome}</span><span class="tg">${label}</span></div>`);
       }
     });
     aniversNoDia(dISO).forEach(f=>{
       const match=!calendarFilter||f.nome.toLowerCase().includes(calendarFilter.toLowerCase());
-      if(match)chips.push(`<div class="chip aniv"><span class="nm">${f.nome}</span><span class="tg">ANIVERSÁRIO</span></div>`);
+      if(match)bands.push(`<div class="band aniv"><span class="nm">${f.nome}</span><span class="tg">ANIVERSÁRIO</span></div>`);
     });
-    if(chips.length)html+=`<div class="chips">${chips.join('')}</div>`;
+    if(bands.length){html+=`<div class="bandwrap">${bands.join('')}</div>`;c.classList.add('banded');}
     c.innerHTML=html;
     c.querySelectorAll('[data-lanc]').forEach(ch=>ch.addEventListener('click',e=>{e.stopPropagation();const l=lancamentos.find(x=>x.id===ch.dataset.lanc);if(l)openEditLancamento(l);}));
     c.addEventListener('click',()=>openLancamento(dISO));
